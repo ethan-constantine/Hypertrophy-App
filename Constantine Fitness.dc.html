@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050505;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+a{color:#2563EB}
+a:hover{color:#3B82F6}
+@keyframes backdropFade{from{opacity:0}to{opacity:1}}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes resultsIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bannerIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modalPop{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#050505;padding:40px 0;font-family:'Inter',system-ui,sans-serif">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" width="{{ 390 }}" height="{{ 844 }}" hint-size="390px,844px">
+<div style="height:100%;display:flex;flex-direction:column;background:#0A0A0A;color:#FFFFFF;position:relative;overflow:hidden;font-family:'Inter',system-ui,sans-serif">
+
+<sc-if value="{{ isSplash }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;align-items:center;justify-content:center">
+<div style="font-size:22px;font-weight:800;letter-spacing:0.02em">CONSTANTINE FITNESS</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;padding:62px 24px 24px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;min-height:36px">
+<sc-if value="{{ showOnboardingBack }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ onboardingBackHandler }}" style="width:36px;height:36px;border-radius:10px;background:#1E1E1E;border:1px solid #2A2A2A;color:#fff;font-size:18px;cursor:pointer">‹</button>
+</sc-if>
+<sc-if value="{{ showOnboardingBackSpacer }}" hint-placeholder-val="{{ true }}"><div style="width:36px"></div></sc-if>
+<div style="display:flex;gap:6px">
+<sc-for list="{{ onboardingDots }}" as="dot" hint-placeholder-count="4">
+<div style="width:8px;height:8px;border-radius:50%;background:{{ dot.color }}"></div>
+</sc-for>
+</div>
+<div style="width:36px"></div>
+</div>
+
+<sc-if value="{{ isOnboardingStep1 }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:16px">
+<div style="font-size:15px;font-weight:800;color:#2563EB;letter-spacing:0.08em">CONSTANTINE FITNESS</div>
+<div style="font-size:28px;font-weight:800;line-height:1.25">Built for people who train seriously.</div>
+<div style="font-size:14px;color:#9CA3AF;line-height:1.5">Set up your profile in 60 seconds and get started.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOnboardingStep2 }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px">
+<div style="font-size:26px;font-weight:800;line-height:1.25">What should we call you?</div>
+<input value="{{ onboardingNameValue }}" onChange="{{ onOnboardingNameChange }}" type="text" placeholder="First name" style="width:100%;height:52px;background:#161616;border:1px solid {{ onboardingNameBorder }};border-radius:12px;color:#fff;font-size:16px;padding:0 16px"></input>
+<sc-if value="{{ onboardingNameErrorVisible }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#D97706">Please enter your name.</div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOnboardingStep3 }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px">
+<div style="font-size:26px;font-weight:800;line-height:1.25;margin-bottom:4px">Which programme are you following?</div>
+<sc-for list="{{ onboardingProgrammeCards }}" as="p" hint-placeholder-count="2">
+<div onClick="{{ p.onClick }}" style="position:relative;background:#161616;border:2px solid {{ p.border }};border-radius:12px;padding:18px">
+<div style="font-size:18px;font-weight:800;margin-bottom:6px">{{ p.name }}</div>
+<div style="font-size:13px;color:#9CA3AF;line-height:1.5">{{ p.description }}</div>
+<sc-if value="{{ p.selected }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;top:14px;right:14px;width:24px;height:24px;border-radius:50%;background:#2563EB;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center">✓</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOnboardingStep4 }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px">
+<div style="font-size:26px;font-weight:800;line-height:1.25">A couple of quick preferences.</div>
+<div>
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Weight Units</div>
+<div style="display:flex;gap:8px">
+<div onClick="{{ onOnboardingUnitKg }}" style="flex:1;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:{{ onboardingUnitKgBg }};color:{{ onboardingUnitKgColor }};border:1px solid #2A2A2A;min-height:44px;display:flex;align-items:center;justify-content:center">kg</div>
+<div onClick="{{ onOnboardingUnitLbs }}" style="flex:1;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:{{ onboardingUnitLbsBg }};color:{{ onboardingUnitLbsColor }};border:1px solid #2A2A2A;min-height:44px;display:flex;align-items:center;justify-content:center">lbs</div>
+</div>
+</div>
+<div style="font-size:13px;color:#9CA3AF;line-height:1.6;background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:16px">Every exercise uses double progression. Add reps each week until you reach the top of the target range, then increase the weight and reset to the bottom of the range. This is how you make consistent progress.</div>
+</div>
+</sc-if>
+
+<button onClick="{{ onboardingNextHandler }}" style="width:100%;height:56px;border:none;border-radius:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-size:17px;font-weight:700;cursor:pointer;margin-top:20px">{{ onboardingButtonLabel }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:62px 20px 24px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+<div>
+<div style="font-size:13px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{{ homeEyebrow }}</div>
+<div style="font-size:30px;font-weight:800;line-height:1.15">{{ homeTitle }}</div>
+</div>
+<button onClick="{{ openSettingsHandler }}" style="width:36px;height:36px;border-radius:10px;background:#161616;border:1px solid #2A2A2A;color:#9CA3AF;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+<svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" fill="none" stroke="#9CA3AF" stroke-width="2"></path><path d="M19.4 13a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V19a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H4a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H10a1.7 1.7 0 001-1.6V4a2 2 0 114 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V10a1.7 1.7 0 001.6 1H20a2 2 0 110 4h-.1a1.7 1.7 0 00-1.6 1z" fill="none" stroke="#9CA3AF" stroke-width="1.6"></path></svg>
+</button>
+</div>
+
+<div style="display:flex;gap:8px;margin:20px 0 24px">
+<sc-for list="{{ streakCards }}" as="c" hint-placeholder-count="3">
+<div style="flex:1;background:#1E1E1E;border-radius:12px;padding:14px 8px;text-align:center;border:{{ c.border }}">
+<div style="font-size:20px;margin-bottom:4px">{{ c.emoji }}</div>
+<div style="font-size:20px;font-weight:800">{{ c.value }}</div>
+<div style="font-size:10px;color:#9CA3AF;font-weight:600;margin-top:2px">{{ c.label }}</div>
+</div>
+</sc-for>
+</div>
+
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:20px;margin-bottom:28px">
+<div style="font-size:20px;font-weight:700;margin-bottom:4px">{{ homeSessionName }}</div>
+<div style="font-size:14px;color:#9CA3AF;margin-bottom:16px">{{ homeSessionSubtitle }}</div>
+<sc-if value="{{ homeShowCta }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ homeCtaHandler }}" style="width:100%;height:52px;border:none;border-radius:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-size:16px;font-weight:700;cursor:pointer">View Session</button>
+</sc-if>
+</div>
+
+<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:12px">Your Programmes</div>
+<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px">
+<sc-for list="{{ programmeCards }}" as="p" hint-placeholder-count="2">
+<div onClick="{{ p.onClick }}" style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;min-height:44px">
+<div>
+<div style="font-size:16px;font-weight:700;margin-bottom:2px">{{ p.name }}</div>
+<div style="font-size:13px;color:#9CA3AF">{{ p.frequency }}</div>
+</div>
+<sc-if value="{{ p.isActive }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:11px;font-weight:700;color:#059669;background:rgba(5,150,105,0.15);border:1px solid rgba(5,150,105,0.4);border-radius:999px;padding:4px 10px;letter-spacing:0.04em">ACTIVE</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+
+<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:12px">This Week</div>
+<div style="display:flex;gap:6px">
+<sc-for list="{{ weekStrip }}" as="d" hint-placeholder-count="7">
+<div onClick="{{ d.onClick }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:12px;cursor:pointer;background:{{ d.bg }};border:{{ d.border }};min-height:44px">
+<div style="font-size:11px;font-weight:700;color:{{ d.labelColor }}">{{ d.day }}</div>
+<div style="width:7px;height:7px;border-radius:50%;background:{{ d.dotColor }}"></div>
+<div style="font-size:8px;font-weight:700;color:{{ d.labelColor }};letter-spacing:0.02em">{{ d.code }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProgrammes }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:62px 20px 24px">
+<div style="font-size:30px;font-weight:800;margin-bottom:20px">Programmes</div>
+<div style="display:flex;background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:4px;margin-bottom:20px">
+<sc-for list="{{ planToggle }}" as="t" hint-placeholder-count="2">
+<div onClick="{{ t.onClick }}" style="flex:1;text-align:center;padding:10px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;background:{{ t.bg }};color:{{ t.color }};min-height:36px">{{ t.name }}</div>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ sessionCards }}" as="s" hint-placeholder-count="6">
+<div onClick="{{ s.onClick }}" style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:18px;cursor:pointer;min-height:44px">
+<div style="font-size:17px;font-weight:700;margin-bottom:6px">{{ s.label }}</div>
+<div style="font-size:13px;color:#9CA3AF">{{ s.meta }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSessionOverview }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:62px">
+<div style="padding:0 20px 6px;display:flex;align-items:center;gap:12px">
+<button onClick="{{ backFromOverview }}" style="width:36px;height:36px;border-radius:10px;background:#1E1E1E;border:1px solid #2A2A2A;color:#fff;font-size:18px;cursor:pointer">‹</button>
+<div style="font-size:13px;color:#9CA3AF;font-weight:600">{{ overviewPlanName }}</div>
+</div>
+<div style="padding:6px 20px 10px">
+<div style="font-size:26px;font-weight:800;margin-bottom:4px">{{ overviewSessionName }}</div>
+<div style="font-size:14px;color:#9CA3AF">{{ overviewSubtitle }}</div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:6px 20px 12px;display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ overviewExercises }}" as="e" hint-placeholder-count="6">
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px">
+<div style="display:flex;align-items:center;gap:8px;min-width:0">
+<div style="font-size:16px;font-weight:700">{{ e.name }}</div>
+<sc-if value="{{ e.showTopArrow }}" hint-placeholder-val="{{ false }}"><div style="color:#D97706;font-size:15px;font-weight:800" title="Hit top of range last time">↑</div></sc-if>
+<button onClick="{{ e.onOpenSwap }}" style="width:28px;height:28px;border-radius:50%;background:#1E1E1E;border:1px solid #2A2A2A;color:#9CA3AF;font-size:14px;cursor:pointer;flex-shrink:0;line-height:1">⇄</button>
+</div>
+<div style="font-size:10px;font-weight:700;color:{{ e.tagColor }};background:{{ e.tagBg }};border-radius:6px;padding:3px 8px;white-space:nowrap">{{ e.tagText }}</div>
+</div>
+<div style="font-size:14px;color:#9CA3AF;margin-bottom:4px">{{ e.setsRepText }}</div>
+<div style="font-size:13px;color:{{ e.effortColor }};margin-bottom:10px;font-weight:600">{{ e.effortText }}</div>
+<div style="font-size:12px;color:#6B7280;line-height:1.4;border-top:1px solid #2A2A2A;padding-top:10px">{{ doubleProgressionNote }}</div>
+</div>
+</sc-for>
+</div>
+<div style="padding:14px 20px 20px;border-top:1px solid #2A2A2A">
+<button onClick="{{ startWorkoutHandler }}" style="width:100%;height:56px;border:none;border-radius:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-size:17px;font-weight:700;cursor:pointer">Start Workout</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isActiveWorkout }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:62px">
+<div style="padding:0 20px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+<button onClick="{{ exitWorkoutHandler }}" style="width:32px;height:32px;border-radius:9px;background:#1E1E1E;border:1px solid #2A2A2A;color:#9CA3AF;font-size:14px;cursor:pointer">✕</button>
+<div style="font-size:13px;font-weight:700;color:#9CA3AF">{{ exerciseProgressText }}</div>
+</div>
+<div style="height:4px;background:#1E1E1E;border-radius:2px;overflow:hidden">
+<div style="height:100%;background:#2563EB;border-radius:2px;width:{{ progressPct }}%"></div>
+</div>
+</div>
+
+<div onTouchStart="{{ touchStart }}" onTouchEnd="{{ touchEnd }}" style="padding:18px 20px 4px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+<div style="font-size:24px;font-weight:800">{{ currentExerciseName }}</div>
+<button onClick="{{ onOpenCurrentSwap }}" style="width:28px;height:28px;border-radius:50%;background:#1E1E1E;border:1px solid #2A2A2A;color:#9CA3AF;font-size:14px;cursor:pointer;flex-shrink:0;line-height:1">⇄</button>
+</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:2px">Previous best: {{ previousBestText }}</div>
+<div style="font-size:12px;color:#6B7280">{{ setsRepReminder }}</div>
+
+<sc-if value="{{ overloadBannerVisible }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;background:#D97706;border-radius:12px;padding:12px 14px;margin-top:12px;animation:bannerIn 0.25s ease">
+<div style="font-size:18px">🏆</div>
+<div style="flex:1;font-size:13px;font-weight:800;color:#1E1300">Top of range — increase weight next session</div>
+<button onClick="{{ dismissOverloadBanner }}" style="width:22px;height:22px;border-radius:6px;border:none;background:rgba(0,0,0,0.15);color:#1E1300;font-size:13px;font-weight:800;cursor:pointer">✕</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ lastSessionVisible }}" hint-placeholder-val="{{ false }}">
+<div style="background:#161616;border-left:3px solid #2563EB;border-radius:8px;padding:10px 12px;margin-top:12px">
+<div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Last Session</div>
+<sc-for list="{{ lastSessionRows }}" as="ls" hint-placeholder-count="3">
+<div style="font-size:12.5px;color:#9CA3AF;line-height:1.6">{{ ls.text }}</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div style="flex:1;overflow-y:auto;padding:10px 20px 4px">
+<div style="display:grid;grid-template-columns:26px 1fr 1fr 1fr 44px;gap:8px;font-size:10px;color:#6B7280;font-weight:700;padding:0 4px 8px;text-transform:uppercase;letter-spacing:0.04em">
+<div>Set</div><div>{{ weightColumnLabel }}</div><div>Reps</div><div>RPE</div><div></div>
+</div>
+<sc-for list="{{ setRows }}" as="row" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;margin-bottom:8px">
+<div style="display:grid;grid-template-columns:26px 1fr 1fr 1fr 44px;gap:8px;align-items:center;background:{{ row.rowBg }};border:1px solid {{ row.rowBorder }};border-radius:12px;padding:8px">
+<div style="font-size:14px;font-weight:700;color:#9CA3AF;text-align:center">{{ row.setNumber }}</div>
+<input value="{{ row.weightDisplay }}" onChange="{{ row.onWeightChange }}" type="number" inputmode="decimal" placeholder="0" style="width:100%;height:38px;background:#0A0A0A;border:1px solid #2A2A2A;border-radius:8px;color:#fff;font-size:14px;text-align:center"></input>
+<input value="{{ row.reps }}" onChange="{{ row.onRepsChange }}" onBlur="{{ row.onRepsBlur }}" type="number" inputmode="numeric" placeholder="0" style="width:100%;height:38px;background:#0A0A0A;border:1px solid #2A2A2A;border-radius:8px;color:#fff;font-size:14px;text-align:center"></input>
+<input value="{{ row.rpe }}" onChange="{{ row.onRpeChange }}" type="number" inputmode="numeric" placeholder="-" min="1" max="10" style="width:100%;height:38px;background:#0A0A0A;border:1px solid #2A2A2A;border-radius:8px;color:#fff;font-size:14px;text-align:center"></input>
+<button onClick="{{ row.onToggleDone }}" style="width:100%;height:38px;border-radius:8px;border:none;background:{{ row.doneBtnBg }};color:{{ row.doneBtnColor }};font-size:16px;font-weight:700;cursor:pointer">{{ row.doneBtnLabel }}</button>
+</div>
+<sc-if value="{{ row.showWarning }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:12px;color:#D97706;padding:6px 4px 0;font-weight:600">⚠ Consider reducing weight next session.</div>
+</sc-if>
+</div>
+</sc-for>
+<button onClick="{{ addSetHandler }}" style="width:100%;height:44px;border-radius:12px;border:1px dashed #2A2A2A;background:transparent;color:#9CA3AF;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px">+ Add Set</button>
+
+<div style="display:flex;justify-content:center;padding:26px 0 8px">
+<div onClick="{{ restTimerHandler }}" style="position:relative;width:116px;height:116px;cursor:pointer">
+<svg width="116" height="116" viewBox="0 0 120 120" style="transform:rotate(-90deg)">
+<circle cx="60" cy="60" r="52" fill="none" stroke="#1E1E1E" stroke-width="8"></circle>
+<circle cx="60" cy="60" r="52" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="{{ restRingOffset }}"></circle>
+</svg>
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+<div style="font-size:20px;font-weight:800">{{ restTimerLabel }}</div>
+<div style="font-size:10px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">{{ restTimerSubLabel }}</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="padding:12px 20px 20px;border-top:1px solid #2A2A2A;display:flex;gap:10px">
+<sc-if value="{{ showPrevButton }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ prevExerciseHandler }}" style="width:56px;height:52px;border-radius:12px;background:#1E1E1E;border:1px solid #2A2A2A;color:#fff;font-size:18px;cursor:pointer">‹</button>
+</sc-if>
+<sc-if value="{{ isLastExercise }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ finishWorkoutHandler }}" style="flex:1;height:52px;border:none;border-radius:12px;background:#059669;color:#fff;font-size:16px;font-weight:700;cursor:pointer">Finish Workout</button>
+</sc-if>
+<sc-if value="{{ isNotLastExercise }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ nextExerciseHandler }}" style="flex:1;height:52px;border:none;border-radius:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-size:16px;font-weight:700;cursor:pointer">Next Exercise</button>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProgress }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:62px 20px 24px">
+<div style="font-size:30px;font-weight:800;margin-bottom:20px">Progress</div>
+<sc-if value="{{ historyEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="text-align:center;padding:60px 20px;color:#6B7280;font-size:14px;line-height:1.5">No sessions logged yet.<br></br>Finish a workout to see it here.</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ historyEntries }}" as="h" hint-placeholder-count="0">
+<div onClick="{{ h.onToggle }}" style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:16px;cursor:pointer">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div>
+<div style="font-size:16px;font-weight:700;margin-bottom:2px">{{ h.sessionName }}</div>
+<div style="font-size:13px;color:#9CA3AF">{{ h.date }}</div>
+</div>
+<div style="text-align:right">
+<div style="font-size:16px;font-weight:800;color:#2563EB">{{ h.totalVolumeText }}</div>
+<div style="font-size:11px;color:#6B7280">total volume</div>
+</div>
+</div>
+<sc-if value="{{ h.expanded }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2A2A2A;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ h.exercises }}" as="ex" hint-placeholder-count="4">
+<div>
+<div style="font-size:13px;font-weight:700;margin-bottom:2px">{{ ex.name }}</div>
+<div style="font-size:12px;color:#9CA3AF">{{ ex.setsText }}</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isNutrition }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:62px 20px 24px">
+<div style="font-size:28px;font-weight:800;margin-bottom:6px">Nutrition Calculator</div>
+<div style="font-size:13px;color:#9CA3AF;margin-bottom:20px;line-height:1.4">Enter your details to get personalised daily macro targets.</div>
+
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:18px;margin-bottom:16px;display:flex;flex-direction:column;gap:16px">
+
+<div>
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Gender</div>
+<div style="display:flex;gap:8px">
+<div onClick="{{ onGenderMale }}" style="flex:1;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:{{ genderMaleBg }};color:{{ genderMaleColor }};border:1px solid #2A2A2A;min-height:44px;display:flex;align-items:center;justify-content:center">Male</div>
+<div onClick="{{ onGenderFemale }}" style="flex:1;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:{{ genderFemaleBg }};color:{{ genderFemaleColor }};border:1px solid #2A2A2A;min-height:44px;display:flex;align-items:center;justify-content:center">Female</div>
+</div>
+</div>
+
+<div>
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Age</div>
+<div style="position:relative">
+<input value="{{ ageValue }}" onChange="{{ onAgeChange }}" type="number" inputmode="numeric" style="width:100%;height:44px;background:#0A0A0A;border:1px solid {{ ageBorder }};border-radius:8px;color:#fff;font-size:15px;padding:0 44px 0 12px"></input>
+<div style="position:absolute;right:12px;top:0;height:44px;display:flex;align-items:center;font-size:12px;color:#6B7280;font-weight:600">years</div>
+</div>
+<sc-if value="{{ ageErrorVisible }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#D97706;margin-top:6px">{{ ageErrorText }}</div></sc-if>
+</div>
+
+<div>
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Height</div>
+<div style="display:flex;align-items:center;gap:10px">
+<div style="position:relative;flex:1">
+<input value="{{ heightCmValue }}" onChange="{{ onHeightCmChange }}" type="number" inputmode="decimal" style="width:100%;height:44px;background:#0A0A0A;border:1px solid {{ heightBorder }};border-radius:8px;color:#fff;font-size:15px;padding:0 36px 0 12px"></input>
+<div style="position:absolute;right:10px;top:0;height:44px;display:flex;align-items:center;font-size:11px;color:#6B7280;font-weight:600">cm</div>
+</div>
+<div style="font-size:11px;color:#6B7280;font-weight:600">or</div>
+<div style="position:relative;flex:1">
+<input value="{{ heightFtValue }}" onChange="{{ onHeightFtChange }}" type="number" inputmode="numeric" style="width:100%;height:44px;background:#0A0A0A;border:1px solid {{ heightBorder }};border-radius:8px;color:#fff;font-size:15px;padding:0 28px 0 10px"></input>
+<div style="position:absolute;right:8px;top:0;height:44px;display:flex;align-items:center;font-size:11px;color:#6B7280;font-weight:600">ft</div>
+</div>
+<div style="position:relative;flex:1">
+<input value="{{ heightInValue }}" onChange="{{ onHeightInChange }}" type="number" inputmode="numeric" style="width:100%;height:44px;background:#0A0A0A;border:1px solid {{ heightBorder }};border-radius:8px;color:#fff;font-size:15px;padding:0 28px 0 10px"></input>
+<div style="position:absolute;right:8px;top:0;height:44px;display:flex;align-items:center;font-size:11px;color:#6B7280;font-weight:600">in</div>
+</div>
+</div>
+<sc-if value="{{ heightErrorVisible }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#D97706;margin-top:6px">{{ heightErrorText }}</div></sc-if>
+</div>
+
+<div>
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Weight</div>
+<div style="display:flex;align-items:center;gap:10px">
+<div style="position:relative;flex:1">
+<input value="{{ weightKgValue }}" onChange="{{ onWeightKgChange }}" type="number" inputmode="decimal" style="width:100%;height:44px;background:#0A0A0A;border:1px solid {{ weightBorder }};border-radius:8px;color:#fff;font-size:15px;padding:0 36px 0 12px"></input>
+<div style="position:absolute;right:10px;top:0;height:44px;display:flex;align-items:center;font-size:11px;color:#6B7280;font-weight:600">kg</div>
+</div>
+<div style="font-size:11px;color:#6B7280;font-weight:600">or</div>
+<div style="position:relative;flex:1">
+<input value="{{ weightLbsValue }}" onChange="{{ onWeightLbsChange }}" type="number" inputmode="decimal" style="width:100%;height:44px;background:#0A0A0A;border:1px solid {{ weightBorder }};border-radius:8px;color:#fff;font-size:15px;padding:0 36px 0 12px"></input>
+<div style="position:absolute;right:10px;top:0;height:44px;display:flex;align-items:center;font-size:11px;color:#6B7280;font-weight:600">lbs</div>
+</div>
+</div>
+<sc-if value="{{ weightErrorVisible }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#D97706;margin-top:6px">{{ weightErrorText }}</div></sc-if>
+</div>
+
+<div>
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Activity Level</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ activityRows }}" as="a" hint-placeholder-count="5">
+<div onClick="{{ a.onClick }}" style="padding:12px 14px;border-radius:10px;background:{{ a.bg }};border:1px solid {{ a.border }};cursor:pointer">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+<div style="font-size:14px;font-weight:700;color:{{ a.titleColor }}">{{ a.title }}</div>
+<sc-if value="{{ a.isRecommended }}" hint-placeholder-val="{{ false }}"><div style="font-size:9px;font-weight:700;color:#059669;background:rgba(5,150,105,0.15);border-radius:6px;padding:2px 6px;white-space:nowrap">RECOMMENDED</div></sc-if>
+</div>
+<div style="font-size:12px;color:#6B7280;margin-top:2px">{{ a.desc }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<button onClick="{{ onCalculate }}" style="width:100%;height:52px;border:none;border-radius:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-size:16px;font-weight:700;cursor:pointer">Calculate</button>
+</div>
+
+<sc-if value="{{ resultsVisible }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px;animation:resultsIn 0.35s ease">
+
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:18px">
+<div style="font-size:26px;font-weight:800">{{ bmrText }}</div>
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:2px 0 4px">BMR</div>
+<div style="font-size:12px;color:#9CA3AF">Your base metabolic rate at rest</div>
+</div>
+
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:18px">
+<div style="font-size:26px;font-weight:800">{{ tdeeText }}</div>
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:2px 0 4px">TDEE</div>
+<div style="font-size:12px;color:#9CA3AF">Total daily calories to maintain weight</div>
+</div>
+
+<div style="background:#161616;border:2px solid #2563EB;border-radius:12px;padding:18px">
+<div style="font-size:22px;font-weight:800;color:#2563EB">{{ muscleRangeText }}</div>
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:2px 0 4px">Muscle Building Target</div>
+<div style="font-size:12px;color:#9CA3AF">TDEE + 350–500 kcal surplus</div>
+</div>
+
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:18px">
+<div style="font-size:22px;font-weight:800;color:#D97706">{{ proteinRangeText }}</div>
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:2px 0 4px">Protein</div>
+<div style="font-size:12px;color:#9CA3AF">0.7–0.8g per lb bodyweight</div>
+</div>
+
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:18px">
+<div style="font-size:22px;font-weight:800;color:{{ fatColor }}">{{ fatRangeText }}</div>
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:2px 0 4px">Fat</div>
+<div style="font-size:12px;color:#9CA3AF">Optimised for hormone health</div>
+</div>
+
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:18px">
+<div style="font-size:22px;font-weight:800;color:#059669">{{ carbsRangeText }}</div>
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:2px 0 4px">Carbohydrates</div>
+<div style="font-size:12px;color:#9CA3AF">Remaining calories after protein and fat</div>
+</div>
+
+<div style="font-size:11px;color:#6B7280;line-height:1.5;padding:4px 4px 8px">These figures are estimates based on peer-reviewed population averages. Individual needs vary. Consult a registered dietitian for personalised guidance.</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow-y:auto;padding:62px 20px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+<button onClick="{{ closeSettingsHandler }}" style="width:36px;height:36px;border-radius:10px;background:#1E1E1E;border:1px solid #2A2A2A;color:#fff;font-size:18px;cursor:pointer">‹</button>
+<div style="font-size:26px;font-weight:800">Settings</div>
+</div>
+
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Profile</div>
+<div style="margin-bottom:20px">
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Name</div>
+<input value="{{ settingsNameValue }}" onChange="{{ onSettingsNameChange }}" onBlur="{{ onSettingsNameBlur }}" type="text" style="width:100%;height:44px;background:#161616;border:1px solid #2A2A2A;border-radius:8px;color:#fff;font-size:15px;padding:0 12px"></input>
+</div>
+<div style="border-top:1px solid #2A2A2A;margin-bottom:20px"></div>
+
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Preferences</div>
+<div style="margin-bottom:16px">
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Weight Units</div>
+<div style="display:flex;gap:8px">
+<div onClick="{{ onSettingsUnitKg }}" style="flex:1;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:{{ settingsUnitKgBg }};color:{{ settingsUnitKgColor }};border:1px solid #2A2A2A;min-height:44px;display:flex;align-items:center;justify-content:center">kg</div>
+<div onClick="{{ onSettingsUnitLbs }}" style="flex:1;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:{{ settingsUnitLbsBg }};color:{{ settingsUnitLbsColor }};border:1px solid #2A2A2A;min-height:44px;display:flex;align-items:center;justify-content:center">lbs</div>
+</div>
+</div>
+<div style="margin-bottom:20px">
+<div style="font-size:12px;color:#9CA3AF;font-weight:600;margin-bottom:8px">Active Programme</div>
+<div style="display:flex;align-items:center;justify-content:space-between;background:#161616;border:1px solid #2A2A2A;border-radius:10px;padding:12px 14px">
+<div style="font-size:14px;font-weight:700">{{ settingsActiveProgrammeName }}</div>
+<button onClick="{{ toggleSettingsChangeProgramme }}" style="height:32px;padding:0 12px;border-radius:8px;background:#1E1E1E;border:1px solid #2A2A2A;color:#9CA3AF;font-size:12px;font-weight:700;cursor:pointer">Change</button>
+</div>
+<sc-if value="{{ settingsChangingProgramme }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+<sc-for list="{{ settingsProgrammeCards }}" as="p" hint-placeholder-count="2">
+<div onClick="{{ p.onClick }}" style="position:relative;background:#161616;border:2px solid {{ p.border }};border-radius:12px;padding:16px">
+<div style="font-size:15px;font-weight:800;margin-bottom:4px">{{ p.name }}</div>
+<div style="font-size:12px;color:#9CA3AF;line-height:1.5">{{ p.description }}</div>
+<sc-if value="{{ p.selected }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:#2563EB;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">✓</div></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<div style="border-top:1px solid #2A2A2A;margin-bottom:20px"></div>
+
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Data</div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+<button onClick="{{ openResetProgrammeDialog }}" style="width:100%;height:48px;border-radius:10px;background:#161616;border:1px solid #2A2A2A;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Reset Current Programme</button>
+<button onClick="{{ openResetAllDialog }}" style="width:100%;height:48px;border-radius:10px;background:#161616;border:1px solid #7f1d1d;color:#f87171;font-size:14px;font-weight:700;cursor:pointer">Reset Everything</button>
+</div>
+<div style="border-top:1px solid #2A2A2A;margin-bottom:20px"></div>
+
+<div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">About</div>
+<div style="font-size:13px;color:#9CA3AF;margin-bottom:4px">Version 1.0</div>
+<div style="font-size:12px;color:#6B7280;line-height:1.5">Programme designed using evidence-based hypertrophy principles.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabBar }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;border-top:1px solid #2A2A2A;background:#0A0A0A;padding:10px 8px 26px">
+<sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="5">
+<div onClick="{{ tab.onClick }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;cursor:pointer;min-height:44px;justify-content:center">
+<sc-if value="{{ tab.isHomeTab }}" hint-placeholder-val="{{ false }}">
+<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 11.5L12 4l8 7.5M6 10.5V20h4v-6h4v6h4v-9.5" fill="none" stroke="{{ tab.color }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</sc-if>
+<sc-if value="{{ tab.isProgrammesTab }}" hint-placeholder-val="{{ false }}">
+<svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="{{ tab.color }}"></rect><rect x="13" y="4" width="7" height="7" rx="1.5" fill="{{ tab.color }}"></rect><rect x="4" y="13" width="7" height="7" rx="1.5" fill="{{ tab.color }}"></rect><rect x="13" y="13" width="7" height="7" rx="1.5" fill="{{ tab.color }}"></rect></svg>
+</sc-if>
+<sc-if value="{{ tab.isLogTab }}" hint-placeholder-val="{{ false }}">
+<svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="5" width="4" height="4" rx="1" fill="{{ tab.color }}"></rect><rect x="11" y="6" width="9" height="2" rx="1" fill="{{ tab.color }}"></rect><rect x="4" y="11" width="4" height="4" rx="1" fill="{{ tab.color }}"></rect><rect x="11" y="12" width="9" height="2" rx="1" fill="{{ tab.color }}"></rect><rect x="4" y="17" width="4" height="4" rx="1" fill="{{ tab.color }}"></rect><rect x="11" y="18" width="9" height="2" rx="1" fill="{{ tab.color }}"></rect></svg>
+</sc-if>
+<sc-if value="{{ tab.isProgressTab }}" hint-placeholder-val="{{ false }}">
+<svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="12" width="4" height="8" fill="{{ tab.color }}"></rect><rect x="10" y="7" width="4" height="13" fill="{{ tab.color }}"></rect><rect x="16" y="3" width="4" height="17" fill="{{ tab.color }}"></rect></svg>
+</sc-if>
+<sc-if value="{{ tab.isNutritionTab }}" hint-placeholder-val="{{ false }}">
+<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2c1.8 2.6 3 4.7 3 7a3 3 0 11-6 0c0-.8.2-1.5.5-2.2.3.9 1 1.4 1.5.9-.4-2 .2-3.8 1-4.7z" fill="{{ tab.color }}"></path></svg>
+</sc-if>
+<div style="font-size:10px;font-weight:600;color:{{ tab.color }}">{{ tab.label }}</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ swapSheetOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeSwapSheetHandler }}" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:40;animation:backdropFade 0.2s ease"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;max-height:72%;background:#161616;border-radius:20px 20px 0 0;z-index:41;display:flex;flex-direction:column;animation:sheetUp 0.25s ease;box-shadow:0 -8px 24px rgba(0,0,0,0.4)">
+<div onClick="{{ closeSwapSheetHandler }}" style="display:flex;justify-content:center;padding:10px 0 6px;cursor:pointer">
+<div style="width:40px;height:5px;border-radius:3px;background:#3A3A3A"></div>
+</div>
+<div style="padding:6px 20px 16px;border-bottom:1px solid #2A2A2A">
+<div style="font-size:18px;font-weight:800">Swap Exercise</div>
+<div style="font-size:13px;color:#9CA3AF;margin-top:2px">{{ swapSheetSubtitle }}</div>
+</div>
+<div style="overflow-y:auto;padding:12px 20px 20px;display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ swapSheetAlternatives }}" as="alt" hint-placeholder-count="4">
+<div onClick="{{ alt.onClick }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:12px;background:#1E1E1E;border:1px solid #2A2A2A;cursor:pointer;min-height:44px">
+<div style="font-size:14px;font-weight:600;color:#fff">{{ alt.name }}</div>
+<div style="display:flex;gap:6px;flex-shrink:0">
+<div style="font-size:10px;font-weight:700;color:#9CA3AF;background:rgba(255,255,255,0.06);border-radius:6px;padding:3px 7px;white-space:nowrap">{{ alt.muscle }}</div>
+<div style="font-size:10px;font-weight:700;color:#2563EB;background:rgba(37,99,235,0.15);border-radius:6px;padding:3px 7px;white-space:nowrap">{{ alt.equipmentTag }}</div>
+</div>
+</div>
+</sc-for>
+<div onClick="{{ swapSheetOnReset }}" style="text-align:center;padding:14px;border-radius:12px;background:transparent;border:1px dashed #2A2A2A;color:#6B7280;font-size:13px;font-weight:700;cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center">Reset to default</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:20px;right:20px;bottom:{{ toastBottom }}px;background:#1E1E1E;border:1px solid #2A2A2A;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;z-index:50;box-shadow:0 8px 20px rgba(0,0,0,0.4);animation:toastIn 0.2s ease">
+<div style="width:20px;height:20px;border-radius:50%;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:800">✓</div>
+<div style="font-size:13px;color:#fff;font-weight:600">{{ toastMessage }}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ confirmDialogOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;animation:backdropFade 0.2s ease">
+<div style="background:#161616;border:1px solid #2A2A2A;border-radius:16px;padding:22px;width:100%;animation:modalPop 0.2s ease">
+<div style="font-size:17px;font-weight:800;margin-bottom:10px">{{ confirmDialogTitle }}</div>
+<div style="font-size:13px;color:#9CA3AF;line-height:1.5;margin-bottom:20px">{{ confirmDialogBody }}</div>
+<div style="display:flex;gap:10px">
+<button onClick="{{ confirmDialogCancel }}" style="flex:1;height:46px;border-radius:10px;background:transparent;border:1px solid #2A2A2A;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Cancel</button>
+<button onClick="{{ confirmDialogConfirm }}" style="flex:1;height:46px;border-radius:10px;background:#DC2626;border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer">{{ confirmDialogActionLabel }}</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ celebrationOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:rgba(0,0,0,0.85);z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;animation:backdropFade 0.25s ease">
+<div style="font-size:64px;margin-bottom:16px">{{ celebrationEmoji }}</div>
+<div style="font-size:24px;font-weight:800;margin-bottom:8px">{{ celebrationTitle }}</div>
+<div style="font-size:14px;color:#9CA3AF;margin-bottom:28px">{{ celebrationSubtitle }}</div>
+<button onClick="{{ celebrationDismiss }}" style="width:100%;height:52px;border:none;border-radius:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-size:16px;font-weight:700;cursor:pointer">Nice!</button>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const ACCENT = '#2563EB', SUCCESS = '#059669', WARNING = '#D97706';
+const TEXT_SEC = '#9CA3AF', TEXT_MUTED = '#6B7280', BORDER = '#2A2A2A', SURFACE = '#161616';
+const DAY_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const CODE_MAP = { push:'PUSH', pull1:'PULL', pull2:'PULL', legs:'LEGS', upperA:'UP A', lowerA:'LO A', upperB:'UP B', lowerB:'LO B' };
+const DOUBLE_PROGRESSION_NOTE = 'Add reps each week until you hit the top of the range, then increase weight and reset to the bottom.';
+
+const ALT_MAP = {
+  'Flat Barbell Bench Press': ['Flat Dumbbell Press', 'Flat Machine Chest Press', 'Flat Smith Machine Press', 'Incline Barbell Press'],
+  'Incline Dumbbell Press': ['Incline Barbell Press', 'Incline Machine Press', 'Incline Smith Machine Press', 'Low-to-High Cable Fly'],
+  'Standing Overhead Press': ['Seated Barbell Overhead Press', 'Seated Dumbbell Shoulder Press', 'Machine Shoulder Press', 'Smith Machine Overhead Press', 'Cable Shoulder Press'],
+  'Dumbbell Lateral Raise': ['Cable Lateral Raise', 'Machine Lateral Raise', 'Plate Lateral Raise'],
+  'Cable Lateral Raise': ['Dumbbell Lateral Raise', 'Machine Lateral Raise', 'Plate Lateral Raise'],
+  'Cable Overhead Tricep Extension': ['Skullcrusher', 'Dumbbell Overhead Tricep Extension', 'Cable Pushdown (Rope)', 'Cable Pushdown (Bar)', 'Machine Tricep Extension', 'Dips'],
+  'Cable Pushdown (Rope)': ['Cable Pushdown (Bar)', 'Skullcrusher', 'Dumbbell Overhead Tricep Extension', 'Machine Tricep Extension', 'Dips'],
+  'Skullcrusher': ['Cable Overhead Tricep Extension', 'Dumbbell Overhead Tricep Extension', 'Cable Pushdown (Rope)', 'Machine Tricep Extension'],
+  'Dumbbell Overhead Tricep Extension': ['Cable Overhead Tricep Extension', 'Skullcrusher', 'Cable Pushdown (Rope)', 'Machine Tricep Extension'],
+  'Bent Over Barbell Row': ['Seated Cable Row', 'Chest-Supported Row Machine', 'Dumbbell Row', 'T-Bar Row', 'Machine Row'],
+  'V-Bar Lat Pulldown': ['Wide-Grip Lat Pulldown', 'Chin-Up', 'Pull-Up', 'Single-Arm Cable Pulldown', 'Straight-Arm Cable Pulldown'],
+  'Wide-Grip Lat Pulldown': ['V-Bar Lat Pulldown', 'Chin-Up', 'Pull-Up', 'Single-Arm Cable Pulldown'],
+  'Barbell Shrug': ['Dumbbell Shrug', 'Cable Shrug', 'Trap Bar Shrug', 'Smith Machine Shrug'],
+  'Dumbbell Shrug': ['Barbell Shrug', 'Cable Shrug', 'Trap Bar Shrug', 'Smith Machine Shrug'],
+  'Face Pull': ['Cable Rear Delt Fly', 'Dumbbell Reverse Fly', 'Band Face Pull'],
+  'Reverse Pec Deck': ['Dumbbell Reverse Fly', 'Cable Rear Delt Fly', 'Band Pull-Apart'],
+  'Barbell Curl': ['Dumbbell Curl', 'EZ Bar Curl', 'Preacher Curl', 'Cable Curl', 'Machine Curl'],
+  'Hammer Curl': ['Rope Cable Curl', 'Cross-Body Hammer Curl', 'Machine Hammer Curl'],
+  'Cable Chest Fly': ['Machine Chest Fly', 'Dumbbell Chest Fly (Flat)', 'Dumbbell Chest Fly (Incline)', 'Low Cable Crossover'],
+  'Barbell Back Squat': ['Smith Machine Squat', 'Hack Squat Machine', 'Leg Press', 'Bulgarian Split Squat', 'Goblet Squat'],
+  'Hack Squat Machine': ['Leg Press', 'Smith Machine Squat', 'Barbell Front Squat', 'V-Squat Machine'],
+  'Romanian Deadlift': ['Dumbbell Romanian Deadlift', 'Single-Leg Romanian Deadlift', 'Cable Pull-Through', 'Trap Bar Romanian Deadlift'],
+  'Conventional Deadlift': ['Sumo Deadlift', 'Trap Bar Deadlift', 'Romanian Deadlift', 'Smith Machine Deadlift'],
+  'Leg Extension Machine': ['Single-Leg Extension Machine', 'Cable Leg Extension', 'Sissy Squat'],
+  'Seated Leg Curl': ['Lying Leg Curl Machine', 'Nordic Curl', 'Cable Leg Curl'],
+  'Lying Leg Curl Machine': ['Seated Leg Curl', 'Nordic Curl', 'Cable Leg Curl'],
+  'Hip Thrust': ['Smith Machine Hip Thrust', 'Hip Thrust Machine', 'Single-Leg Hip Thrust', 'Cable Hip Thrust'],
+  'Cable Donkey Kick': ['Machine Glute Kickback', 'Hip Thrust', 'Smith Machine Hip Thrust', 'Banded Glute Kickback'],
+};
+const MUSCLE_MAP = {
+  'Flat Barbell Bench Press': 'Chest', 'Incline Dumbbell Press': 'Upper Chest', 'Standing Overhead Press': 'Shoulders',
+  'Dumbbell Lateral Raise': 'Side Delts', 'Cable Lateral Raise': 'Side Delts',
+  'Cable Overhead Tricep Extension': 'Triceps', 'Cable Pushdown (Rope)': 'Triceps', 'Skullcrusher': 'Triceps', 'Dumbbell Overhead Tricep Extension': 'Triceps',
+  'Bent Over Barbell Row': 'Back', 'V-Bar Lat Pulldown': 'Lats', 'Wide-Grip Lat Pulldown': 'Lats',
+  'Barbell Shrug': 'Traps', 'Dumbbell Shrug': 'Traps', 'Face Pull': 'Rear Delts', 'Reverse Pec Deck': 'Rear Delts',
+  'Barbell Curl': 'Biceps', 'Hammer Curl': 'Biceps', 'Cable Chest Fly': 'Chest',
+  'Barbell Back Squat': 'Quads', 'Hack Squat Machine': 'Quads', 'Romanian Deadlift': 'Hamstrings', 'Conventional Deadlift': 'Posterior Chain',
+  'Leg Extension Machine': 'Quads', 'Seated Leg Curl': 'Hamstrings', 'Lying Leg Curl Machine': 'Hamstrings',
+  'Hip Thrust': 'Glutes', 'Cable Donkey Kick': 'Glutes',
+};
+const BODYWEIGHT_NAMES = ['Chin-Up', 'Pull-Up', 'Dips', 'Nordic Curl', 'Sissy Squat'];
+const DUMBBELL_OVERRIDE_NAMES = ['Bulgarian Split Squat', 'Goblet Squat'];
+const BAND_NAMES = ['Band Face Pull', 'Band Pull-Apart', 'Banded Glute Kickback'];
+function equipmentTag(name) {
+  if (BAND_NAMES.includes(name)) return 'Band';
+  if (BODYWEIGHT_NAMES.includes(name)) return 'Bodyweight';
+  if (DUMBBELL_OVERRIDE_NAMES.includes(name)) return 'Dumbbell';
+  if (/trap bar|barbell/i.test(name)) return 'Barbell';
+  if (/dumbbell/i.test(name)) return 'Dumbbell';
+  if (/cable/i.test(name)) return 'Cable';
+  if (/machine|smith/i.test(name)) return 'Machine';
+  return 'Bodyweight';
+}
+
+const ACTIVITY_MULT = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, extreme: 1.9 };
+const ACTIVITY_ROWS = [
+  { value: 'sedentary', title: 'Sedentary', desc: 'Desk job, little exercise' },
+  { value: 'light', title: 'Lightly Active', desc: '1–2 sessions/week' },
+  { value: 'moderate', title: 'Moderately Active', desc: '3–4 sessions/week', recommended: true },
+  { value: 'active', title: 'Very Active', desc: '5–6 sessions/week' },
+  { value: 'extreme', title: 'Extremely Active', desc: 'Daily training + physical job' },
+];
+
+function ex(name, sets, repMin, repMax, type, rpe) { return { name, sets, repMin, repMax, type, rpe }; }
+
+const push = { name: 'Push', exercises: [
+  ex('Flat Barbell Bench Press', 3, 6, 10, 'Compound', 8),
+  ex('Incline Dumbbell Press', 2, 8, 12, 'Compound', 8),
+  ex('Standing Overhead Press', 3, 8, 10, 'Compound', 8),
+  ex('Dumbbell Lateral Raise', 4, 12, 15, 'Isolation', 10),
+  ex('Cable Overhead Tricep Extension', 3, 10, 12, 'Isolation', 10),
+  ex('Cable Pushdown (Rope)', 2, 12, 15, 'Isolation', 10),
+]};
+const pull1 = { name: 'Pull', exercises: [
+  ex('Bent Over Barbell Row', 3, 6, 10, 'Compound', 8),
+  ex('V-Bar Lat Pulldown', 3, 8, 12, 'Compound', 8),
+  ex('Barbell Shrug', 3, 10, 15, 'Isolation', 10),
+  ex('Face Pull', 3, 12, 15, 'Isolation', 10),
+  ex('Reverse Pec Deck', 2, 12, 15, 'Isolation', 10),
+  ex('Barbell Curl', 2, 10, 12, 'Isolation', 10),
+]};
+const pull2 = { name: 'Pull', exercises: [
+  ex('Bent Over Barbell Row', 3, 6, 10, 'Compound', 8),
+  ex('V-Bar Lat Pulldown', 3, 8, 12, 'Compound', 8),
+  ex('Barbell Shrug', 3, 10, 15, 'Isolation', 10),
+  ex('Face Pull', 3, 12, 15, 'Isolation', 10),
+  ex('Reverse Pec Deck', 2, 12, 15, 'Isolation', 10),
+]};
+const legs = { name: 'Legs', exercises: [
+  ex('Barbell Back Squat', 3, 5, 8, 'Compound', 8),
+  ex('Romanian Deadlift', 3, 8, 12, 'Compound', 8),
+  ex('Leg Extension Machine', 3, 12, 15, 'Isolation', 10),
+  ex('Seated Leg Curl', 3, 10, 12, 'Isolation', 10),
+  ex('Hip Thrust', 2, 10, 15, 'Isolation', 10),
+]};
+const upperA = { name: 'Upper A', exercises: [
+  ex('Flat Barbell Bench Press', 2, 6, 10, 'Compound', 8),
+  ex('Bent Over Barbell Row', 2, 8, 10, 'Compound', 8),
+  ex('Dumbbell Lateral Raise', 4, 12, 15, 'Isolation', 10),
+  ex('V-Bar Lat Pulldown', 3, 8, 12, 'Compound', 8),
+  ex('Cable Chest Fly', 3, 12, 15, 'Isolation', 10),
+  ex('Barbell Shrug', 3, 10, 15, 'Isolation', 10),
+  ex('Face Pull', 3, 12, 15, 'Isolation', 10),
+  ex('Cable Overhead Tricep Extension', 2, 10, 12, 'Isolation', 10),
+  ex('Barbell Curl', 2, 10, 12, 'Isolation', 10),
+  ex('Cable Pushdown (Rope)', 2, 12, 15, 'Isolation', 10),
+]};
+const lowerA = { name: 'Lower A', exercises: [
+  ex('Barbell Back Squat', 3, 5, 8, 'Compound', 8),
+  ex('Romanian Deadlift', 3, 8, 12, 'Compound', 8),
+  ex('Leg Extension Machine', 3, 12, 15, 'Isolation', 10),
+  ex('Seated Leg Curl', 3, 10, 12, 'Isolation', 10),
+  ex('Hip Thrust', 2, 10, 15, 'Isolation', 10),
+]};
+const upperB = { name: 'Upper B', exercises: [
+  ex('Incline Dumbbell Press', 2, 8, 12, 'Compound', 8),
+  ex('Bent Over Barbell Row', 2, 8, 10, 'Compound', 8),
+  ex('Cable Lateral Raise', 4, 12, 15, 'Isolation', 10),
+  ex('Wide-Grip Lat Pulldown', 3, 8, 12, 'Compound', 8),
+  ex('Cable Chest Fly', 3, 12, 15, 'Isolation', 10),
+  ex('Dumbbell Shrug', 3, 10, 15, 'Isolation', 10),
+  ex('Reverse Pec Deck', 3, 12, 15, 'Isolation', 10),
+  ex('Skullcrusher', 2, 10, 12, 'Isolation', 10),
+  ex('Hammer Curl', 2, 10, 12, 'Isolation', 10),
+  ex('Dumbbell Overhead Tricep Extension', 2, 10, 12, 'Isolation', 10),
+]};
+const lowerB = { name: 'Lower B', exercises: [
+  ex('Hack Squat Machine', 3, 8, 12, 'Compound', 8),
+  ex('Conventional Deadlift', 3, 6, 10, 'Compound', 8),
+  ex('Leg Extension Machine', 3, 12, 15, 'Isolation', 10),
+  ex('Lying Leg Curl Machine', 3, 10, 12, 'Isolation', 10),
+  ex('Cable Donkey Kick', 2, 12, 15, 'Isolation', 10),
+]};
+
+const PROGRAMMES = {
+  ppl: { id: 'ppl', name: 'Push / Pull / Legs', short: 'PPL', frequency: '6x / week',
+    onboardingDescription: 'Push / Pull / Legs — 6 sessions per week — Each session repeated twice weekly. Chest, shoulders and triceps. Back and biceps. Legs.',
+    sessionDefs: { push, pull1, pull2, legs },
+    week: [
+      { day: 'Mon', key: 'push', label: 'Push 1' },
+      { day: 'Tue', key: 'pull1', label: 'Pull 1' },
+      { day: 'Wed', key: 'legs', label: 'Legs 1' },
+      { day: 'Thu', key: 'push', label: 'Push 2' },
+      { day: 'Fri', key: 'pull2', label: 'Pull 2' },
+      { day: 'Sat', key: 'legs', label: 'Legs 2' },
+      { day: 'Sun', key: null, label: 'Rest' },
+    ]},
+  ul: { id: 'ul', name: 'Upper / Lower', short: 'U/L', frequency: '4x / week',
+    onboardingDescription: 'Upper / Lower — 4 sessions per week — Two upper sessions and two lower sessions per week. Full upper/lower body split.',
+    sessionDefs: { upperA, lowerA, upperB, lowerB },
+    week: [
+      { day: 'Mon', key: 'upperA', label: 'Upper A' },
+      { day: 'Tue', key: 'lowerA', label: 'Lower A' },
+      { day: 'Wed', key: null, label: 'Rest' },
+      { day: 'Thu', key: 'upperB', label: 'Upper B' },
+      { day: 'Fri', key: 'lowerB', label: 'Lower B' },
+      { day: 'Sat', key: null, label: 'Rest' },
+      { day: 'Sun', key: null, label: 'Rest' },
+    ]},
+};
+
+function sessionStats(def) {
+  const exerciseCount = def.exercises.length;
+  const totalSets = def.exercises.reduce((s, e) => s + e.sets, 0);
+  const estDuration = Math.round((totalSets * 3.2 + exerciseCount * 1.2) / 5) * 5;
+  return { exerciseCount, totalSets, estDuration };
+}
+
+function effortText(e) {
+  if (e.rpe >= 10) return `RPE ${e.rpe} — to failure`;
+  return `RPE ${e.rpe} — ${10 - e.rpe} reps short of failure`;
+}
+
+function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+
+function mockPreviousBest(name, type) {
+  const h = hashStr(name);
+  const base = type === 'Compound' ? 40 : 12;
+  const range = type === 'Compound' ? 90 : 25;
+  return Math.round((base + (h % range)) / 2.5) * 2.5;
+}
+
+function todayIndex() { return (new Date().getDay() + 6) % 7; }
+function formatDate(iso) { return new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
+function formatTime(sec) { const m = Math.floor(sec / 60); const s = sec % 60; return `${m}:${String(s).padStart(2, '0')}`; }
+function fmt(n) { return Math.round(n).toLocaleString(); }
+function dateOnly(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function daysBetween(isoA, isoB) { const a = dateOnly(new Date(isoA)), b = dateOnly(new Date(isoB)); return Math.round((b - a) / 86400000); }
+
+const KG_PER_LB = 0.453592;
+function kgToLbs(kg) { return kg / KG_PER_LB; }
+function lbsToKg(lbs) { return lbs * KG_PER_LB; }
+function roundW(n) { return Math.round(n * 10) / 10; }
+function displayWeight(kg, unit) { if (kg === '' || kg == null || isNaN(kg)) return ''; return unit === 'kg' ? roundW(kg) : roundW(kgToLbs(kg)); }
+function parseInputToKg(raw, unit) { if (raw === '') return ''; const v = parseFloat(raw); if (isNaN(v)) return ''; return unit === 'kg' ? v : lbsToKg(v); }
+
+const STORAGE_KEYS = {
+  onboardingComplete: 'gymapp.onboardingComplete', userName: 'gymapp.userName', weightUnit: 'gymapp.weightUnit',
+  activePlanId: 'gymapp.activePlanId', history: 'gymapp.history', streak: 'gymapp.streak', celebrated: 'gymapp.celebratedMilestones',
+};
+function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
+function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+const DEFAULT_STREAK = { current: 0, longest: 0, lastDate: null, datesCompleted: [], totalWorkouts: 0 };
+const MILESTONES = [7, 14, 30];
+
+class Component extends DCLogic {
+  state = {
+    screen: 'splash',
+    activePlanId: 'ppl',
+    selectedDayIndex: todayIndex(),
+    detailPlanId: 'ppl',
+    viewingSession: null,
+    cameFromScreen: 'home',
+    workout: null,
+    restTimer: null,
+    history: [],
+    expandedHistoryId: null,
+    overviewOverrides: {},
+    swapSheet: null,
+    toast: null,
+    nutrition: { gender: 'male', age: '', heightCm: '', heightFt: '', heightIn: '', weightKg: '', weightLbs: '', activity: 'moderate' },
+    nutritionErrors: {},
+    nutritionResults: null,
+    userName: '',
+    weightUnit: 'kg',
+    onboardingComplete: false,
+    onboardingStep: 1,
+    onboardingName: '',
+    onboardingNameError: false,
+    onboardingProgrammeId: null,
+    onboardingUnit: 'kg',
+    streak: DEFAULT_STREAK,
+    celebratedMilestones: [],
+    celebrationModal: null,
+    confirmDialog: null,
+    settingsChangingProgramme: false,
+    settingsNameDraft: '',
+  };
+
+  restIntervalId = null;
+  touchStartX = null;
+  toastTimeoutId = null;
+
+  constructor(props) {
+    super(props);
+    const onboardingComplete = loadJSON(STORAGE_KEYS.onboardingComplete, false);
+    const userName = loadJSON(STORAGE_KEYS.userName, '');
+    const weightUnit = loadJSON(STORAGE_KEYS.weightUnit, 'kg');
+    const activePlanId = loadJSON(STORAGE_KEYS.activePlanId, 'ppl');
+    const history = loadJSON(STORAGE_KEYS.history, []);
+    const streak = loadJSON(STORAGE_KEYS.streak, DEFAULT_STREAK);
+    const celebratedMilestones = loadJSON(STORAGE_KEYS.celebrated, []);
+    this.state = {
+      ...this.state,
+      onboardingComplete, userName, weightUnit, activePlanId, detailPlanId: activePlanId,
+      history, streak, celebratedMilestones,
+      settingsNameDraft: userName,
+      screen: 'splash',
+    };
+  }
+
+  componentDidMount() {
+    setTimeout(() => {
+      this.setState({ screen: this.state.onboardingComplete ? 'home' : 'onboarding' });
+    }, 350);
+  }
+
+  componentWillUnmount() {
+    if (this.restIntervalId) clearInterval(this.restIntervalId);
+    if (this.toastTimeoutId) clearTimeout(this.toastTimeoutId);
+  }
+
+  persistCore = () => {
+    saveJSON(STORAGE_KEYS.userName, this.state.userName);
+    saveJSON(STORAGE_KEYS.weightUnit, this.state.weightUnit);
+    saveJSON(STORAGE_KEYS.activePlanId, this.state.activePlanId);
+    saveJSON(STORAGE_KEYS.history, this.state.history);
+    saveJSON(STORAGE_KEYS.streak, this.state.streak);
+    saveJSON(STORAGE_KEYS.celebrated, this.state.celebratedMilestones);
+    saveJSON(STORAGE_KEYS.onboardingComplete, this.state.onboardingComplete);
+  };
+
+  goHome = () => this.setState({ screen: 'home' });
+  selectActivePlan = (planId) => this.setState({ activePlanId: planId }, this.persistCore);
+  selectDetailPlan = (planId) => this.setState({ detailPlanId: planId });
+
+  openSession = (planId, key, label, from) => {
+    this.setState({ screen: 'sessionOverview', viewingSession: { planId, key, label }, cameFromScreen: from || 'home', overviewOverrides: {}, swapSheet: null });
+  };
+
+  startWorkout = () => {
+    const vs = this.state.viewingSession;
+    const def = PROGRAMMES[vs.planId].sessionDefs[vs.key];
+    const overrides = this.state.overviewOverrides;
+    const exercises = def.exercises.map((e, idx) => {
+      const name = overrides[idx] || e.name;
+      return {
+        ...e, name, baseName: e.name,
+        previousBest: mockPreviousBest(name, e.type),
+        loggedSets: Array.from({ length: e.sets }, () => ({ weightKg: '', reps: '', rpe: '', done: false })),
+      };
+    });
+    this.setState({ screen: 'activeWorkout', workout: { planId: vs.planId, key: vs.key, label: vs.label, exerciseIndex: 0, exercises, overloadTriggeredIndex: null, overloadDismissed: false } });
+  };
+
+  updateSetWeight = (exIdx, rowIdx, raw) => {
+    const kg = parseInputToKg(raw, this.state.weightUnit);
+    this.setState(s => {
+      const workout = s.workout;
+      const exercises = workout.exercises.map((e, i) => i !== exIdx ? e : {
+        ...e, loggedSets: e.loggedSets.map((row, j) => j !== rowIdx ? row : { ...row, weightKg: kg }),
+      });
+      return { workout: { ...workout, exercises } };
+    });
+  };
+
+  updateSetField = (exIdx, rowIdx, field, value) => {
+    this.setState(s => {
+      const workout = s.workout;
+      const exercises = workout.exercises.map((e, i) => i !== exIdx ? e : {
+        ...e, loggedSets: e.loggedSets.map((row, j) => j !== rowIdx ? row : { ...row, [field]: value }),
+      });
+      return { workout: { ...workout, exercises } };
+    });
+  };
+
+  checkOverload = (exIdx, reps) => {
+    const w = this.state.workout;
+    if (!w) return;
+    const curEx = w.exercises[exIdx];
+    if (reps !== '' && Number(reps) >= curEx.repMax) {
+      this.setState(s => ({ workout: { ...s.workout, overloadTriggeredIndex: exIdx, overloadDismissed: false } }));
+    }
+  };
+
+  dismissOverloadBanner = () => this.setState(s => ({ workout: { ...s.workout, overloadDismissed: true } }));
+
+  toggleSetDone = (exIdx, rowIdx) => {
+    const exType = this.state.workout.exercises[exIdx].type;
+    const reps = this.state.workout.exercises[exIdx].loggedSets[rowIdx].reps;
+    this.setState(s => {
+      const workout = s.workout;
+      const exercises = workout.exercises.map((e, i) => i !== exIdx ? e : {
+        ...e, loggedSets: e.loggedSets.map((row, j) => j !== rowIdx ? row : { ...row, done: true }),
+      });
+      return { workout: { ...workout, exercises } };
+    });
+    this.checkOverload(exIdx, reps);
+    this.startRestTimer(exType === 'Compound' ? 120 : 60);
+  };
+
+  addSet = (exIdx) => {
+    this.setState(s => {
+      const workout = s.workout;
+      const exercises = workout.exercises.map((e, i) => i !== exIdx ? e : {
+        ...e, loggedSets: [...e.loggedSets, { weightKg: '', reps: '', rpe: '', done: false }],
+      });
+      return { workout: { ...workout, exercises } };
+    });
+  };
+
+  startRestTimer = (seconds) => {
+    if (this.restIntervalId) clearInterval(this.restIntervalId);
+    this.setState({ restTimer: { secondsLeft: seconds, total: seconds } });
+    this.restIntervalId = setInterval(() => {
+      this.setState(s => {
+        if (!s.restTimer) { clearInterval(this.restIntervalId); return null; }
+        const left = s.restTimer.secondsLeft - 1;
+        if (left <= 0) { clearInterval(this.restIntervalId); return { restTimer: null }; }
+        return { restTimer: { ...s.restTimer, secondsLeft: left } };
+      });
+    }, 1000);
+  };
+
+  skipRest = () => { if (this.restIntervalId) clearInterval(this.restIntervalId); this.setState({ restTimer: null }); };
+
+  nextExercise = () => this.setState(s => ({ workout: { ...s.workout, exerciseIndex: Math.min(s.workout.exerciseIndex + 1, s.workout.exercises.length - 1), overloadDismissed: true } }));
+  prevExercise = () => this.setState(s => ({ workout: { ...s.workout, exerciseIndex: Math.max(s.workout.exerciseIndex - 1, 0), overloadDismissed: true } }));
+
+  updateStreakOnFinish = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    this.setState(s => {
+      const st = s.streak;
+      let current = st.current;
+      if (!st.lastDate) current = 1;
+      else {
+        const gap = daysBetween(st.lastDate, today);
+        if (gap === 0) current = st.current || 1;
+        else if (gap <= 2) current = st.current + 1;
+        else current = 1;
+      }
+      const longest = Math.max(st.longest, current);
+      const datesCompleted = st.datesCompleted.includes(today) ? st.datesCompleted : [...st.datesCompleted, today];
+      const totalWorkouts = st.totalWorkouts + 1;
+      const newStreak = { current, longest, lastDate: today, datesCompleted, totalWorkouts };
+      let celebrationModal = null, celebratedMilestones = s.celebratedMilestones;
+      if (MILESTONES.includes(current) && !s.celebratedMilestones.includes(current)) {
+        celebrationModal = { milestone: current };
+        celebratedMilestones = [...s.celebratedMilestones, current];
+      }
+      return { streak: newStreak, celebrationModal, celebratedMilestones };
+    }, this.persistCore);
+  };
+
+  finishWorkout = () => {
+    const w = this.state.workout;
+    let totalVolume = 0;
+    const exercises = w.exercises.map(e => {
+      const doneSets = e.loggedSets.filter(r => r.done && r.weightKg !== '' && r.reps !== '');
+      doneSets.forEach(r => { totalVolume += (parseFloat(r.weightKg) || 0) * (parseFloat(r.reps) || 0); });
+      return {
+        name: e.name, repMax: e.repMax,
+        sets: doneSets.map(r => ({ weightKg: parseFloat(r.weightKg) || 0, reps: parseFloat(r.reps) || 0, rpe: r.rpe })),
+      };
+    }).filter(e => e.sets.length);
+    const entry = { id: Date.now(), planId: w.planId, date: new Date().toISOString(), sessionName: w.label, totalVolumeKg: Math.round(totalVolume), exercises };
+    if (this.restIntervalId) clearInterval(this.restIntervalId);
+    this.setState(s => ({ screen: 'progress', workout: null, restTimer: null, history: [entry, ...s.history] }), () => {
+      this.persistCore();
+      this.updateStreakOnFinish();
+    });
+  };
+
+  toggleHistoryExpand = (id) => this.setState(s => ({ expandedHistoryId: s.expandedHistoryId === id ? null : id }));
+
+  touchStart = (e) => { this.touchStartX = e.touches[0].clientX; };
+  touchEnd = (e) => {
+    if (this.touchStartX == null) return;
+    const dx = e.changedTouches[0].clientX - this.touchStartX;
+    this.touchStartX = null;
+    if (dx < -40) this.nextExercise();
+    else if (dx > 40) this.prevExercise();
+  };
+
+  showToast = (message) => {
+    if (this.toastTimeoutId) clearTimeout(this.toastTimeoutId);
+    this.setState({ toast: { message } });
+    this.toastTimeoutId = setTimeout(() => this.setState({ toast: null }), 2000);
+  };
+
+  openSwapSheet = (scope, idx, currentName, baseName) => this.setState({ swapSheet: { scope, idx, currentName, baseName } });
+  closeSwapSheet = () => this.setState({ swapSheet: null });
+
+  selectAlternative = (altName) => {
+    const sheet = this.state.swapSheet;
+    if (!sheet) return;
+    if (sheet.scope === 'overview') {
+      this.setState(s => ({ overviewOverrides: { ...s.overviewOverrides, [sheet.idx]: altName }, swapSheet: null }));
+    } else {
+      this.setState(s => {
+        const workout = s.workout;
+        const exercises = workout.exercises.map((e, i) => i !== sheet.idx ? e : { ...e, name: altName, previousBest: mockPreviousBest(altName, e.type) });
+        return { workout: { ...workout, exercises }, swapSheet: null };
+      });
+    }
+    this.showToast(`Replaced with ${altName}`);
+  };
+
+  resetSwapToDefault = () => {
+    const sheet = this.state.swapSheet;
+    if (!sheet) return;
+    if (sheet.scope === 'overview') {
+      this.setState(s => { const o = { ...s.overviewOverrides }; delete o[sheet.idx]; return { overviewOverrides: o, swapSheet: null }; });
+    } else {
+      this.setState(s => {
+        const workout = s.workout;
+        const exercises = workout.exercises.map((e, i) => i !== sheet.idx ? e : { ...e, name: e.baseName, previousBest: mockPreviousBest(e.baseName, e.type) });
+        return { workout: { ...workout, exercises }, swapSheet: null };
+      });
+    }
+    this.showToast('Reverted to default exercise');
+  };
+
+  updateNutritionField = (field, value) => this.setState(s => ({ nutrition: { ...s.nutrition, [field]: value } }));
+  setGender = (g) => this.updateNutritionField('gender', g);
+  setActivity = (a) => this.updateNutritionField('activity', a);
+
+  calculateNutrition = () => {
+    const n = this.state.nutrition;
+    const errors = {};
+    const age = parseFloat(n.age) || 0;
+    if (!(age > 0)) errors.age = 'Enter your age';
+    const heightCm = parseFloat(n.heightCm) || 0;
+    const heightFt = parseFloat(n.heightFt) || 0;
+    const heightIn = parseFloat(n.heightIn) || 0;
+    const cm = heightCm > 0 ? heightCm : (heightFt > 0 ? heightFt * 30.48 + heightIn * 2.54 : 0);
+    if (!(cm > 0)) errors.height = 'Enter your height (cm, or feet/inches)';
+    const weightKg = parseFloat(n.weightKg) || 0;
+    const weightLbs = parseFloat(n.weightLbs) || 0;
+    const kg = weightKg > 0 ? weightKg : (weightLbs > 0 ? weightLbs / 2.20462 : 0);
+    if (!(kg > 0)) errors.weight = 'Enter your weight (kg or lbs)';
+    if (Object.keys(errors).length) { this.setState({ nutritionErrors: errors, nutritionResults: null }); return; }
+
+    const isMale = n.gender === 'male';
+    const bmr = isMale ? (10 * kg + 6.25 * cm - 5 * age + 5) : (10 * kg + 6.25 * cm - 5 * age - 161);
+    const mult = ACTIVITY_MULT[n.activity] || 1.55;
+    const tdee = bmr * mult;
+    const lbs = kg * 2.20462;
+    const proteinMin = Math.round(lbs * 0.73), proteinTarget = Math.round(lbs * 0.82);
+    const fatMin = Math.round(isMale ? kg * 1.0 : kg * 0.7);
+    const fatTarget = Math.round(isMale ? kg * 1.2 : kg * 0.9);
+    const muscleLower = tdee + 350, muscleUpper = tdee + 500;
+    const carbsUpper = Math.round((muscleUpper - fatTarget * 9 - proteinTarget * 4) / 4);
+    const carbsLower = Math.round((muscleLower - fatMin * 9 - proteinMin * 4) / 4);
+
+    this.setState({
+      nutritionErrors: {},
+      nutritionResults: {
+        bmr: Math.round(bmr), tdee: Math.round(tdee),
+        muscleLower: Math.round(muscleLower), muscleUpper: Math.round(muscleUpper),
+        proteinMin, proteinTarget, fatMin, fatTarget, carbsLower, carbsUpper, isMale,
+      },
+    });
+  };
+
+  // onboarding
+  onboardingSetName = (v) => this.setState({ onboardingName: v, onboardingNameError: false });
+  onboardingSelectProgramme = (id) => this.setState({ onboardingProgrammeId: id });
+  onboardingSetUnit = (u) => this.setState({ onboardingUnit: u });
+  onboardingBack = () => this.setState(s => ({ onboardingStep: Math.max(1, s.onboardingStep - 1) }));
+  onboardingNext = () => {
+    const s = this.state;
+    if (s.onboardingStep === 2 && !s.onboardingName.trim()) { this.setState({ onboardingNameError: true }); return; }
+    if (s.onboardingStep === 3 && !s.onboardingProgrammeId) return;
+    if (s.onboardingStep < 4) { this.setState(st => ({ onboardingStep: st.onboardingStep + 1 })); return; }
+    const planId = s.onboardingProgrammeId || 'ppl';
+    this.setState({
+      onboardingComplete: true, userName: s.onboardingName.trim(), weightUnit: s.onboardingUnit,
+      activePlanId: planId, detailPlanId: planId, settingsNameDraft: s.onboardingName.trim(),
+      screen: 'home',
+    }, this.persistCore);
+  };
+
+  // settings
+  openSettings = () => this.setState({ screen: 'settings', cameFromScreen: 'home', settingsChangingProgramme: false, settingsNameDraft: this.state.userName });
+  closeSettings = () => this.setState({ screen: 'home' });
+  updateSettingsName = (v) => this.setState({ settingsNameDraft: v });
+  commitSettingsName = () => this.setState(s => ({ userName: s.settingsNameDraft.trim() || s.userName }), this.persistCore);
+  setSettingsUnit = (u) => this.setState({ weightUnit: u }, this.persistCore);
+  toggleSettingsChangeProgramme = () => this.setState(s => ({ settingsChangingProgramme: !s.settingsChangingProgramme }));
+  settingsSelectProgramme = (id) => this.setState({ activePlanId: id, detailPlanId: id, settingsChangingProgramme: false }, this.persistCore);
+
+  openResetProgrammeDialog = () => this.setState({ confirmDialog: { type: 'resetProgramme' } });
+  openResetAllDialog = () => this.setState({ confirmDialog: { type: 'resetAll' } });
+  closeConfirmDialog = () => this.setState({ confirmDialog: null });
+  confirmDialogAction = () => {
+    const type = this.state.confirmDialog && this.state.confirmDialog.type;
+    if (type === 'resetProgramme') {
+      const planId = this.state.activePlanId;
+      this.setState(s => ({
+        history: s.history.filter(h => h.planId !== planId),
+        streak: { ...s.streak, current: 0 },
+        confirmDialog: null, screen: 'home',
+      }), this.persistCore);
+    } else if (type === 'resetAll') {
+      Object.values(STORAGE_KEYS).forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+      this.setState({
+        history: [], streak: DEFAULT_STREAK, celebratedMilestones: [], onboardingComplete: false,
+        onboardingStep: 1, onboardingName: '', onboardingProgrammeId: null, onboardingUnit: 'kg',
+        userName: '', weightUnit: 'kg', activePlanId: 'ppl', detailPlanId: 'ppl',
+        confirmDialog: null, screen: 'onboarding',
+      });
+    }
+  };
+  dismissCelebration = () => this.setState({ celebrationModal: null });
+
+  renderVals() {
+    const s = this.state;
+    const unit = s.weightUnit;
+    const isSplash = s.screen === 'splash', isOnboarding = s.screen === 'onboarding';
+    const isHome = s.screen === 'home', isProgrammes = s.screen === 'programmes',
+      isSessionOverview = s.screen === 'sessionOverview', isActiveWorkout = s.screen === 'activeWorkout',
+      isProgress = s.screen === 'progress', isNutrition = s.screen === 'nutrition', isSettings = s.screen === 'settings';
+    const showTabBar = isHome || isProgrammes || isProgress || isNutrition;
+
+    // onboarding
+    const onboardingDots = [1, 2, 3, 4].map(n => ({ color: n <= s.onboardingStep ? ACCENT : BORDER }));
+    const showOnboardingBack = s.onboardingStep > 1;
+    const showOnboardingBackSpacer = s.onboardingStep === 1;
+    const onboardingBackHandler = () => this.onboardingBack();
+    const isOnboardingStep1 = s.onboardingStep === 1, isOnboardingStep2 = s.onboardingStep === 2,
+      isOnboardingStep3 = s.onboardingStep === 3, isOnboardingStep4 = s.onboardingStep === 4;
+    const onboardingButtonLabel = s.onboardingStep === 1 ? "Let's Go" : s.onboardingStep === 4 ? 'Get Started' : 'Next';
+    const onboardingNextHandler = () => this.onboardingNext();
+    const onboardingNameValue = s.onboardingName;
+    const onOnboardingNameChange = (e) => this.onboardingSetName(e.target.value);
+    const onboardingNameBorder = s.onboardingNameError ? WARNING : BORDER;
+    const onboardingNameErrorVisible = s.onboardingNameError;
+    const onboardingProgrammeCards = Object.values(PROGRAMMES).map(p => ({
+      id: p.id, name: p.name, description: p.onboardingDescription,
+      selected: s.onboardingProgrammeId === p.id,
+      border: s.onboardingProgrammeId === p.id ? ACCENT : BORDER,
+      onClick: () => this.onboardingSelectProgramme(p.id),
+    }));
+    const onboardingUnitKgBg = s.onboardingUnit === 'kg' ? ACCENT : 'transparent', onboardingUnitKgColor = s.onboardingUnit === 'kg' ? '#fff' : TEXT_SEC;
+    const onboardingUnitLbsBg = s.onboardingUnit === 'lbs' ? ACCENT : 'transparent', onboardingUnitLbsColor = s.onboardingUnit === 'lbs' ? '#fff' : TEXT_SEC;
+    const onOnboardingUnitKg = () => this.onboardingSetUnit('kg');
+    const onOnboardingUnitLbs = () => this.onboardingSetUnit('lbs');
+
+    const activePlan = PROGRAMMES[s.activePlanId];
+    const weekEntry = activePlan.week[s.selectedDayIndex];
+    const isRealToday = s.selectedDayIndex === todayIndex();
+
+    const homeEyebrow = isRealToday ? 'Today' : DAY_FULL[s.selectedDayIndex];
+    const homeTitle = weekEntry.key ? (isRealToday ? "Today's Session" : weekEntry.label) : 'Rest Day';
+    let homeSessionName, homeSessionSubtitle;
+    if (weekEntry.key) {
+      const def = activePlan.sessionDefs[weekEntry.key];
+      const stats = sessionStats(def);
+      homeSessionName = weekEntry.label;
+      homeSessionSubtitle = `${stats.exerciseCount} exercises · ${stats.totalSets} sets · ~${stats.estDuration} min`;
+    } else {
+      homeSessionName = 'Rest Day';
+      homeSessionSubtitle = 'Recovery day — no session scheduled.';
+    }
+    const homeShowCta = !!weekEntry.key;
+    const homeCtaHandler = () => this.openSession(activePlan.id, weekEntry.key, weekEntry.label, 'home');
+    const openSettingsHandler = () => this.openSettings();
+
+    const streakCards = [
+      { emoji: '🔥', value: s.streak.current, label: 'Current Streak', border: s.streak.current > 7 ? `1px solid ${WARNING}` : 'none' },
+      { emoji: '🏆', value: s.streak.longest, label: 'Best Streak', border: 'none' },
+      { emoji: '💪', value: s.streak.totalWorkouts, label: 'Total Sessions', border: 'none' },
+    ];
+
+    const programmeCards = Object.values(PROGRAMMES).map(p => ({
+      id: p.id, name: p.name, frequency: p.frequency, isActive: p.id === s.activePlanId,
+      onClick: () => this.selectActivePlan(p.id),
+    }));
+
+    const weekStrip = activePlan.week.map((w, i) => {
+      const selected = i === s.selectedDayIndex;
+      const isRest = !w.key;
+      return {
+        day: w.day, code: isRest ? 'REST' : CODE_MAP[w.key],
+        labelColor: selected ? '#fff' : (isRest ? TEXT_MUTED : TEXT_SEC),
+        dotColor: selected ? ACCENT : (isRest ? BORDER : '#374151'),
+        bg: selected ? 'rgba(37,99,235,0.15)' : 'transparent',
+        border: selected ? '1px solid rgba(37,99,235,0.4)' : '1px solid transparent',
+        onClick: () => { this.setState({ selectedDayIndex: i }); if (w.key) this.openSession(activePlan.id, w.key, w.label, 'home'); },
+      };
+    });
+
+    const detailPlan = PROGRAMMES[s.detailPlanId];
+    const planToggle = Object.values(PROGRAMMES).map(p => ({
+      id: p.id, name: p.short, isActive: p.id === s.detailPlanId,
+      bg: p.id === s.detailPlanId ? ACCENT : 'transparent', color: p.id === s.detailPlanId ? '#fff' : TEXT_SEC,
+      onClick: () => this.selectDetailPlan(p.id),
+    }));
+    const sessionCards = detailPlan.week.filter(w => w.key).map(w => {
+      const def = detailPlan.sessionDefs[w.key];
+      const stats = sessionStats(def);
+      return { label: w.label, meta: `${stats.exerciseCount} exercises · ${stats.totalSets} sets · ~${stats.estDuration} min`, onClick: () => this.openSession(detailPlan.id, w.key, w.label, 'programmes') };
+    });
+
+    const findLastSession = (sessionName, exerciseName) => {
+      for (const h of s.history) {
+        if (h.sessionName !== sessionName) continue;
+        const found = h.exercises.find(e => e.name === exerciseName);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    let overviewPlanName, overviewSessionName, overviewSubtitle, overviewExercises;
+    if (s.viewingSession) {
+      const plan = PROGRAMMES[s.viewingSession.planId];
+      const def = plan.sessionDefs[s.viewingSession.key];
+      const stats = sessionStats(def);
+      overviewPlanName = plan.name;
+      overviewSessionName = s.viewingSession.label;
+      overviewSubtitle = `${stats.totalSets} sets across ${stats.exerciseCount} exercises`;
+      overviewExercises = def.exercises.map((e, idx) => {
+        const displayName = s.overviewOverrides[idx] || e.name;
+        const last = findLastSession(s.viewingSession.label, displayName);
+        const showTopArrow = !!(last && last.sets.some(set => set.reps >= e.repMax));
+        return {
+          name: displayName,
+          setsRepText: `${e.sets} sets × ${e.repMin}–${e.repMax} reps`,
+          effortText: effortText(e),
+          effortColor: e.rpe >= 9 ? WARNING : TEXT_SEC,
+          tagText: e.type === 'Compound' ? '[Compound]' : '[Isolation]',
+          tagColor: e.type === 'Compound' ? ACCENT : TEXT_SEC,
+          tagBg: e.type === 'Compound' ? 'rgba(37,99,235,0.15)' : 'rgba(255,255,255,0.06)',
+          showTopArrow,
+          onOpenSwap: () => this.openSwapSheet('overview', idx, displayName, e.name),
+        };
+      });
+    }
+    const startWorkoutHandler = () => this.startWorkout();
+    const backFromOverview = () => this.setState({ screen: s.cameFromScreen || 'home' });
+
+    let currentExerciseName, exerciseProgressText, progressPct, previousBestText, setsRepReminder,
+      setRows, addSetHandler, isLastExercise, isNotLastExercise, showPrevButton,
+      nextExerciseHandler, prevExerciseHandler, finishWorkoutHandler, exitWorkoutHandler,
+      restTimerLabel, restTimerSubLabel, restRingOffset, restTimerHandler, onOpenCurrentSwap,
+      overloadBannerVisible, lastSessionVisible, lastSessionRows, weightColumnLabel;
+    weightColumnLabel = unit === 'kg' ? 'Kg' : 'Lbs';
+    if (s.workout) {
+      const w = s.workout;
+      const curEx = w.exercises[w.exerciseIndex];
+      currentExerciseName = curEx.name;
+      exerciseProgressText = `${w.exerciseIndex + 1} / ${w.exercises.length}`;
+      progressPct = Math.round(((w.exerciseIndex + 1) / w.exercises.length) * 100);
+      previousBestText = `${displayWeight(curEx.previousBest, unit)}${unit}`;
+      setsRepReminder = `${curEx.sets} sets × ${curEx.repMin}–${curEx.repMax} reps · ${effortText(curEx)}`;
+      onOpenCurrentSwap = () => this.openSwapSheet('workout', w.exerciseIndex, curEx.name, curEx.baseName);
+      overloadBannerVisible = w.overloadTriggeredIndex === w.exerciseIndex && !w.overloadDismissed;
+
+      const last = findLastSession(w.label, curEx.name);
+      lastSessionVisible = !!(last && last.sets.length);
+      lastSessionRows = lastSessionVisible ? last.sets.map((set, i) => ({
+        text: `Set ${i + 1} — ${displayWeight(set.weightKg, unit)}${unit} × ${set.reps} reps${set.rpe ? ` @ RPE ${set.rpe}` : ''}`,
+      })) : [];
+
+      setRows = curEx.loggedSets.map((row, idx) => {
+        const showWarning = curEx.type === 'Compound' && row.done && Number(row.rpe) >= 9;
+        return {
+          setNumber: idx + 1, weightDisplay: displayWeight(row.weightKg, unit), reps: row.reps, rpe: row.rpe,
+          rowBg: row.done ? 'rgba(5,150,105,0.12)' : SURFACE,
+          rowBorder: row.done ? 'rgba(5,150,105,0.5)' : BORDER,
+          doneBtnBg: row.done ? SUCCESS : '#1E1E1E',
+          doneBtnColor: row.done ? '#fff' : TEXT_SEC,
+          doneBtnLabel: row.done ? '✓' : '—',
+          showWarning,
+          onWeightChange: (e) => this.updateSetWeight(w.exerciseIndex, idx, e.target.value),
+          onRepsChange: (e) => this.updateSetField(w.exerciseIndex, idx, 'reps', e.target.value),
+          onRepsBlur: (e) => this.checkOverload(w.exerciseIndex, e.target.value),
+          onRpeChange: (e) => this.updateSetField(w.exerciseIndex, idx, 'rpe', e.target.value),
+          onToggleDone: () => this.toggleSetDone(w.exerciseIndex, idx),
+        };
+      });
+      addSetHandler = () => this.addSet(w.exerciseIndex);
+      isLastExercise = w.exerciseIndex === w.exercises.length - 1;
+      isNotLastExercise = !isLastExercise;
+      showPrevButton = w.exerciseIndex > 0;
+      nextExerciseHandler = () => this.nextExercise();
+      prevExerciseHandler = () => this.prevExercise();
+      finishWorkoutHandler = () => this.finishWorkout();
+      exitWorkoutHandler = () => { if (this.restIntervalId) clearInterval(this.restIntervalId); this.setState({ screen: 'home', workout: null, restTimer: null }); };
+
+      const rt = s.restTimer;
+      const circumference = 326.7;
+      restTimerLabel = rt ? formatTime(rt.secondsLeft) : 'Rest';
+      restTimerSubLabel = rt ? 'tap to skip' : 'tap to start';
+      restRingOffset = rt ? circumference * (1 - rt.secondsLeft / rt.total) : circumference;
+      restTimerHandler = () => { if (rt) this.skipRest(); else this.startRestTimer(curEx.type === 'Compound' ? 120 : 60); };
+    }
+
+    const dismissOverloadBanner = () => this.dismissOverloadBanner();
+
+    const historyEntries = s.history.map(h => ({
+      id: h.id, sessionName: h.sessionName, date: formatDate(h.date),
+      totalVolumeText: `${displayWeight(h.totalVolumeKg, unit)} ${unit}`,
+      expanded: s.expandedHistoryId === h.id,
+      onToggle: () => this.toggleHistoryExpand(h.id),
+      exercises: h.exercises.map(e => ({
+        name: e.name,
+        setsText: e.sets.map((set, i) => `Set ${i + 1} — ${displayWeight(set.weightKg, unit)}${unit} × ${set.reps}${set.rpe ? ` @RPE ${set.rpe}` : ''}`).join(' · '),
+      })),
+    }));
+    const historyEmpty = s.history.length === 0;
+
+    const tabDefs = [
+      { id: 'home', label: 'Home', active: s.screen === 'home', kind: 'home' },
+      { id: 'programmes', label: 'Programmes', active: s.screen === 'programmes', kind: 'programmes' },
+      { id: 'log', label: 'Log', active: s.screen === 'progress', kind: 'log' },
+      { id: 'nutrition', label: 'Nutrition', active: s.screen === 'nutrition', kind: 'nutrition' },
+      { id: 'progress', label: 'Progress', active: s.screen === 'progress', kind: 'progress' },
+    ];
+    const tabs = tabDefs.map(t => ({
+      ...t, color: t.active ? ACCENT : TEXT_MUTED,
+      isHomeTab: t.kind === 'home', isProgrammesTab: t.kind === 'programmes', isLogTab: t.kind === 'log', isProgressTab: t.kind === 'progress', isNutritionTab: t.kind === 'nutrition',
+      onClick: () => {
+        if (t.id === 'home') this.goHome();
+        else if (t.id === 'programmes') this.setState({ screen: 'programmes', detailPlanId: s.activePlanId });
+        else if (t.id === 'nutrition') this.setState({ screen: 'nutrition' });
+        else this.setState({ screen: 'progress' });
+      },
+    }));
+
+    let swapSheetOpen = false, swapSheetSubtitle, swapSheetAlternatives, swapSheetOnReset, closeSwapSheetHandler;
+    closeSwapSheetHandler = () => this.closeSwapSheet();
+    if (s.swapSheet) {
+      swapSheetOpen = true;
+      swapSheetSubtitle = `Currently: ${s.swapSheet.currentName}`;
+      const alts = ALT_MAP[s.swapSheet.baseName] || [];
+      const muscle = MUSCLE_MAP[s.swapSheet.baseName] || '';
+      swapSheetAlternatives = alts.map(altName => ({ name: altName, muscle, equipmentTag: equipmentTag(altName), onClick: () => this.selectAlternative(altName) }));
+      swapSheetOnReset = () => this.resetSwapToDefault();
+    }
+    const toastVisible = !!s.toast;
+    const toastMessage = s.toast ? s.toast.message : '';
+    const toastBottom = showTabBar ? 100 : 24;
+
+    const n = s.nutrition;
+    const err = s.nutritionErrors;
+    const genderMaleBg = n.gender === 'male' ? ACCENT : 'transparent', genderMaleColor = n.gender === 'male' ? '#fff' : TEXT_SEC;
+    const genderFemaleBg = n.gender === 'female' ? ACCENT : 'transparent', genderFemaleColor = n.gender === 'female' ? '#fff' : TEXT_SEC;
+    const activityRows = ACTIVITY_ROWS.map(a => ({
+      value: a.value, title: a.title, desc: a.desc, isRecommended: !!a.recommended,
+      bg: n.activity === a.value ? 'rgba(37,99,235,0.12)' : '#1E1E1E',
+      border: n.activity === a.value ? ACCENT : BORDER,
+      titleColor: n.activity === a.value ? '#fff' : '#E5E7EB',
+      onClick: () => this.setActivity(a.value),
+    }));
+    const res = s.nutritionResults;
+    const resultsVisible = !!res;
+    let bmrText, tdeeText, muscleRangeText, proteinRangeText, fatRangeText, carbsRangeText, fatColor;
+    if (res) {
+      bmrText = `${fmt(res.bmr)} kcal`;
+      tdeeText = `${fmt(res.tdee)} kcal`;
+      muscleRangeText = `${fmt(res.muscleLower)} – ${fmt(res.muscleUpper)} kcal/day`;
+      proteinRangeText = `${res.proteinMin}g – ${res.proteinTarget}g`;
+      const fatNote = res.isMale ? '1.0–1.2g per kg' : '0.7–0.9g per kg';
+      fatRangeText = `${res.fatMin}g – ${res.fatTarget}g (${fatNote})`;
+      fatColor = res.isMale ? '#2563EB' : '#60A5FA';
+      carbsRangeText = `${res.carbsLower}g – ${res.carbsUpper}g`;
+    }
+
+    // settings
+    const closeSettingsHandler = () => this.closeSettings();
+    const settingsNameValue = s.settingsNameDraft;
+    const onSettingsNameChange = (e) => this.updateSettingsName(e.target.value);
+    const onSettingsNameBlur = () => this.commitSettingsName();
+    const settingsUnitKgBg = unit === 'kg' ? ACCENT : 'transparent', settingsUnitKgColor = unit === 'kg' ? '#fff' : TEXT_SEC;
+    const settingsUnitLbsBg = unit === 'lbs' ? ACCENT : 'transparent', settingsUnitLbsColor = unit === 'lbs' ? '#fff' : TEXT_SEC;
+    const onSettingsUnitKg = () => this.setSettingsUnit('kg');
+    const onSettingsUnitLbs = () => this.setSettingsUnit('lbs');
+    const settingsActiveProgrammeName = PROGRAMMES[s.activePlanId].name;
+    const toggleSettingsChangeProgramme = () => this.toggleSettingsChangeProgramme();
+    const settingsChangingProgramme = s.settingsChangingProgramme;
+    const settingsProgrammeCards = Object.values(PROGRAMMES).map(p => ({
+      id: p.id, name: p.name, description: p.onboardingDescription,
+      selected: s.activePlanId === p.id, border: s.activePlanId === p.id ? ACCENT : BORDER,
+      onClick: () => this.settingsSelectProgramme(p.id),
+    }));
+    const openResetProgrammeDialogFn = () => this.openResetProgrammeDialog();
+    const openResetAllDialogFn = () => this.openResetAllDialog();
+
+    let confirmDialogOpen = false, confirmDialogTitle, confirmDialogBody, confirmDialogActionLabel;
+    const confirmDialogCancel = () => this.closeConfirmDialog();
+    const confirmDialogConfirm = () => this.confirmDialogAction();
+    if (s.confirmDialog) {
+      confirmDialogOpen = true;
+      if (s.confirmDialog.type === 'resetProgramme') {
+        confirmDialogTitle = 'Reset Programme?';
+        confirmDialogBody = 'This will delete all logged workouts for your current programme and start fresh. Your other programme history and preferences will be kept.';
+        confirmDialogActionLabel = 'Reset';
+      } else {
+        confirmDialogTitle = 'Delete All Data?';
+        confirmDialogBody = 'This will permanently delete everything including your history, streak and preferences. You will be taken back to the start.';
+        confirmDialogActionLabel = 'Delete Everything';
+      }
+    }
+
+    let celebrationOpen = false, celebrationEmoji, celebrationTitle, celebrationSubtitle;
+    const celebrationDismiss = () => this.dismissCelebration();
+    if (s.celebrationModal) {
+      celebrationOpen = true;
+      const m = s.celebrationModal.milestone;
+      celebrationEmoji = m >= 30 ? '🏆' : m >= 14 ? '💪' : '🔥';
+      celebrationTitle = `${m}-Day Streak!`;
+      celebrationSubtitle = "You're building serious consistency. Keep it up.";
+    }
+
+    return {
+      isSplash, isOnboarding, isHome, isProgrammes, isSessionOverview, isActiveWorkout, isProgress, isNutrition, isSettings, showTabBar,
+      onboardingDots, showOnboardingBack, showOnboardingBackSpacer, onboardingBackHandler,
+      isOnboardingStep1, isOnboardingStep2, isOnboardingStep3, isOnboardingStep4,
+      onboardingButtonLabel, onboardingNextHandler, onboardingNameValue, onOnboardingNameChange,
+      onboardingNameBorder, onboardingNameErrorVisible, onboardingProgrammeCards,
+      onboardingUnitKgBg, onboardingUnitKgColor, onboardingUnitLbsBg, onboardingUnitLbsColor, onOnboardingUnitKg, onOnboardingUnitLbs,
+      homeEyebrow, homeTitle, homeSessionName, homeSessionSubtitle, homeShowCta, homeCtaHandler, openSettingsHandler, streakCards,
+      programmeCards, weekStrip,
+      planToggle, sessionCards,
+      overviewPlanName, overviewSessionName, overviewSubtitle, overviewExercises, doubleProgressionNote: DOUBLE_PROGRESSION_NOTE,
+      startWorkoutHandler, backFromOverview,
+      currentExerciseName, exerciseProgressText, progressPct, previousBestText, setsRepReminder, onOpenCurrentSwap,
+      overloadBannerVisible, dismissOverloadBanner, lastSessionVisible, lastSessionRows, weightColumnLabel,
+      setRows, addSetHandler, isLastExercise, isNotLastExercise, showPrevButton,
+      nextExerciseHandler, prevExerciseHandler, finishWorkoutHandler, exitWorkoutHandler,
+      restTimerLabel, restTimerSubLabel, restRingOffset, restTimerHandler,
+      touchStart: this.touchStart, touchEnd: this.touchEnd,
+      historyEntries, historyEmpty,
+      tabs,
+      swapSheetOpen, swapSheetSubtitle, swapSheetAlternatives, swapSheetOnReset, closeSwapSheetHandler,
+      toastVisible, toastMessage, toastBottom,
+      genderMaleBg, genderMaleColor, genderFemaleBg, genderFemaleColor,
+      onGenderMale: () => this.setGender('male'), onGenderFemale: () => this.setGender('female'),
+      ageValue: n.age, onAgeChange: (e) => this.updateNutritionField('age', e.target.value),
+      ageBorder: err.age ? WARNING : BORDER, ageErrorVisible: !!err.age, ageErrorText: err.age,
+      heightCmValue: n.heightCm, onHeightCmChange: (e) => this.updateNutritionField('heightCm', e.target.value),
+      heightFtValue: n.heightFt, onHeightFtChange: (e) => this.updateNutritionField('heightFt', e.target.value),
+      heightInValue: n.heightIn, onHeightInChange: (e) => this.updateNutritionField('heightIn', e.target.value),
+      heightBorder: err.height ? WARNING : BORDER, heightErrorVisible: !!err.height, heightErrorText: err.height,
+      weightKgValue: n.weightKg, onWeightKgChange: (e) => this.updateNutritionField('weightKg', e.target.value),
+      weightLbsValue: n.weightLbs, onWeightLbsChange: (e) => this.updateNutritionField('weightLbs', e.target.value),
+      weightBorder: err.weight ? WARNING : BORDER, weightErrorVisible: !!err.weight, weightErrorText: err.weight,
+      activityRows, onCalculate: () => this.calculateNutrition(),
+      resultsVisible, bmrText, tdeeText, muscleRangeText, proteinRangeText, fatRangeText, fatColor, carbsRangeText,
+      closeSettingsHandler, settingsNameValue, onSettingsNameChange, onSettingsNameBlur,
+      settingsUnitKgBg, settingsUnitKgColor, settingsUnitLbsBg, settingsUnitLbsColor, onSettingsUnitKg, onSettingsUnitLbs,
+      settingsActiveProgrammeName, toggleSettingsChangeProgramme, settingsChangingProgramme, settingsProgrammeCards,
+      openResetProgrammeDialog: openResetProgrammeDialogFn, openResetAllDialog: openResetAllDialogFn,
+      confirmDialogOpen, confirmDialogTitle, confirmDialogBody, confirmDialogActionLabel, confirmDialogCancel, confirmDialogConfirm,
+      celebrationOpen, celebrationEmoji, celebrationTitle, celebrationSubtitle, celebrationDismiss,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
