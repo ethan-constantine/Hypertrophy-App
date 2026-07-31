@@ -25,9 +25,9 @@ a:hover{color:#3B82F6}
 @keyframes modalPop{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
 </style>
 </helmet>
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#050505;padding:40px 0;font-family:'Inter',system-ui,sans-serif">
-<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" width="{{ 390 }}" height="{{ 844 }}" hint-size="390px,844px">
-<div style="height:100%;display:flex;flex-direction:column;background:#0A0A0A;color:#FFFFFF;position:relative;overflow:hidden;font-family:'Inter',system-ui,sans-serif">
+
+<div style="width:100%;min-height:100dvh;">
+<div style="min-height:100dvh;width:100%;display:flex;flex-direction:column;background:#0A0A0A;color:#FFFFFF;position:relative;overflow-x:hidden;font-family:'Inter',system-ui,sans-serif">
 
 <sc-if value="{{ isSplash }}" hint-placeholder-val="{{ false }}">
 <div style="flex:1;display:flex;align-items:center;justify-content:center">
@@ -588,7 +588,6 @@ a:hover{color:#3B82F6}
 </sc-if>
 
 </div>
-</x-import>
 </div>
 
 </x-dc>
@@ -1117,7 +1116,6 @@ class Component extends DCLogic {
     });
   };
 
-  // onboarding
   onboardingSetName = (v) => this.setState({ onboardingName: v, onboardingNameError: false });
   onboardingSelectProgramme = (id) => this.setState({ onboardingProgrammeId: id });
   onboardingSetUnit = (u) => this.setState({ onboardingUnit: u });
@@ -1135,7 +1133,6 @@ class Component extends DCLogic {
     }, this.persistCore);
   };
 
-  // settings
   openSettings = () => this.setState({ screen: 'settings', cameFromScreen: 'home', settingsChangingProgramme: false, settingsNameDraft: this.state.userName });
   closeSettings = () => this.setState({ screen: 'home' });
   updateSettingsName = (v) => this.setState({ settingsNameDraft: v });
@@ -1177,7 +1174,6 @@ class Component extends DCLogic {
       isProgress = s.screen === 'progress', isNutrition = s.screen === 'nutrition', isSettings = s.screen === 'settings';
     const showTabBar = isHome || isProgrammes || isProgress || isNutrition;
 
-    // onboarding
     const onboardingDots = [1, 2, 3, 4].map(n => ({ color: n <= s.onboardingStep ? ACCENT : BORDER }));
     const showOnboardingBack = s.onboardingStep > 1;
     const showOnboardingBackSpacer = s.onboardingStep === 1;
@@ -1422,7 +1418,6 @@ class Component extends DCLogic {
       carbsRangeText = `${res.carbsLower}g – ${res.carbsUpper}g`;
     }
 
-    // settings
     const closeSettingsHandler = () => this.closeSettings();
     const settingsNameValue = s.settingsNameDraft;
     const onSettingsNameChange = (e) => this.updateSettingsName(e.target.value);
