@@ -847,8 +847,10 @@ class Component extends DCLogic{
     const userName=loadJSON(STORAGE_KEYS.userName,'');
     const weightUnit=loadJSON(STORAGE_KEYS.weightUnit,'kg');
     const activePlanId=loadJSON(STORAGE_KEYS.activePlanId,'ppl');
-    const history=loadJSON(STORAGE_KEYS.history,[]);
-    const streak=loadJSON(STORAGE_KEYS.streak,DEFAULT_STREAK);
+    const rawHistory=loadJSON(STORAGE_KEYS.history,[]);
+    const history=Array.isArray(rawHistory)?rawHistory.map(h=>({...h,exercises:Array.isArray(h.exercises)?h.exercises.map(e=>({...e,sets:Array.isArray(e.sets)?e.sets:[],notes:e.notes||''})):[]})):[];
+    const rawStreak=loadJSON(STORAGE_KEYS.streak,DEFAULT_STREAK);
+    const streak={...DEFAULT_STREAK,...rawStreak,datesCompleted:Array.isArray(rawStreak.datesCompleted)?rawStreak.datesCompleted:[],totalWorkouts:rawStreak.totalWorkouts||0};
     const celebratedMilestones=loadJSON(STORAGE_KEYS.celebrated,[]);
     const savedNutrition=loadJSON(STORAGE_KEYS.nutrition,null);
     const savedNutritionResults=loadJSON(STORAGE_KEYS.nutritionResults,null);
@@ -1070,6 +1072,7 @@ class Component extends DCLogic{
   dismissCelebration=()=>this.setState({celebrationModal:null});
 
   renderVals(){
+    try{
     const s=this.state;
     const unit=s.weightUnit;
     const isSplash=s.screen==='splash';
@@ -1305,6 +1308,10 @@ class Component extends DCLogic{
       confirmDialogOpen,confirmDialogTitle,confirmDialogBody,confirmDialogActionLabel,confirmDialogCancel,confirmDialogConfirm,
       celebrationOpen,celebrationEmoji,celebrationTitle,celebrationSubtitle,celebrationDismiss,
     };
+    }catch(err){
+      console.error('renderVals error:',err);
+      return {isSplash:false,isOnboarding:false,isHome:true,isProgrammes:false,isSessionOverview:false,isActiveWorkout:false,isProgress:false,isNutrition:false,isSettings:false,showTabBar:true,onboardingDots:[],showOnboardingBack:false,showOnboardingBackSpacer:true,onboardingBackHandler:()=>{},isOnboardingStep1:true,isOnboardingStep2:false,isOnboardingStep3:false,isOnboardingStep4:false,onboardingButtonLabel:'Next',onboardingNextHandler:()=>{},onboardingNameValue:'',onOnboardingNameChange:()=>{},onboardingNameBorder:'#2A2A2A',onboardingNameErrorVisible:false,onboardingProgrammeCards:[],onboardingUnitKgBg:'#2563EB',onboardingUnitKgColor:'#fff',onboardingUnitLbsBg:'transparent',onboardingUnitLbsColor:'#9CA3AF',onOnboardingUnitKg:()=>{},onOnboardingUnitLbs:()=>{},homeEyebrow:'Error',homeTitle:err.message||'Something went wrong',homeSessionName:'',homeSessionSubtitle:'Please clear your browser data and reload',homeShowCta:false,homeCtaHandler:()=>{},openSettingsHandler:()=>{},streakCards:[],programmeCards:[],weekStrip:[],planToggle:[],sessionCards:[],doubleProgressionNote:'',startWorkoutHandler:()=>{},backFromOverview:()=>{},overloadBannerVisible:false,dismissOverloadBanner:()=>{},prBannerVisible:false,prBannerText:'',dismissPrBanner:()=>{},lastSessionVisible:false,lastSessionRows:[],weightColumnLabel:'Kg',exerciseNotes:'',lastExerciseNotes:'',hasLastNotes:false,onExerciseNotesChange:()=>{},setRows:[],isLastExercise:false,isNotLastExercise:true,showPrevButton:false,restTimerLabel:'Rest',restTimerSubLabel:'tap to start',restRingOffset:326.7,restTimerHandler:()=>{},touchStart:()=>{},touchEnd:()=>{},historyEntries:[],historyEmpty:true,tabs:[{id:'home',label:'Home',active:true,color:'#2563EB',isHomeTab:true,isProgrammesTab:false,isLogTab:false,isProgressTab:false,isNutritionTab:false,onClick:()=>{}},{id:'programmes',label:'Programmes',active:false,color:'#6B7280',isHomeTab:false,isProgrammesTab:true,isLogTab:false,isProgressTab:false,isNutritionTab:false,onClick:()=>{}},{id:'log',label:'Log',active:false,color:'#6B7280',isHomeTab:false,isProgrammesTab:false,isLogTab:true,isProgressTab:false,isNutritionTab:false,onClick:()=>{}},{id:'nutrition',label:'Nutrition',active:false,color:'#6B7280',isHomeTab:false,isProgrammesTab:false,isLogTab:false,isProgressTab:false,isNutritionTab:true,onClick:()=>{}},{id:'progress',label:'Progress',active:false,color:'#6B7280',isHomeTab:false,isProgrammesTab:false,isLogTab:false,isProgressTab:true,isNutritionTab:false,onClick:()=>{}}],swapSheetOpen:false,swapSheetAlternatives:[],closeSwapSheetHandler:()=>{},toastVisible:false,toastMessage:'',toastBottom:100,genderMaleBg:'#2563EB',genderMaleColor:'#fff',genderFemaleBg:'transparent',genderFemaleColor:'#9CA3AF',onGenderMale:()=>{},onGenderFemale:()=>{},ageValue:'',onAgeChange:()=>{},ageBorder:'#2A2A2A',ageErrorVisible:false,ageErrorText:'',heightCmValue:'',onHeightCmChange:()=>{},heightFtValue:'',onHeightFtChange:()=>{},heightInValue:'',onHeightInChange:()=>{},heightBorder:'#2A2A2A',heightErrorVisible:false,heightErrorText:'',weightKgValue:'',onWeightKgChange:()=>{},weightLbsValue:'',onWeightLbsChange:()=>{},weightBorder:'#2A2A2A',weightErrorVisible:false,weightErrorText:'',activityRows:[],onCalculate:()=>{},resultsVisible:false,closeSettingsHandler:()=>{},settingsNameValue:'',onSettingsNameChange:()=>{},onSettingsNameBlur:()=>{},settingsUnitKgBg:'#2563EB',settingsUnitKgColor:'#fff',settingsUnitLbsBg:'transparent',settingsUnitLbsColor:'#9CA3AF',onSettingsUnitKg:()=>{},onSettingsUnitLbs:()=>{},settingsActiveProgrammeName:'PPL',toggleSettingsChangeProgramme:()=>{},settingsChangingProgramme:false,settingsProgrammeCards:[],openResetProgrammeDialog:()=>{},openResetAllDialog:()=>{},confirmDialogOpen:false,confirmDialogCancel:()=>{},confirmDialogConfirm:()=>{},celebrationOpen:false,celebrationDismiss:()=>{}};
+    }
   }
 }
 
