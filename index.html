@@ -1353,7 +1353,9 @@ class Component extends DCLogic {
       setRows, addSetHandler, isLastExercise, isNotLastExercise, showPrevButton,
       nextExerciseHandler, prevExerciseHandler, finishWorkoutHandler, exitWorkoutHandler,
       restTimerLabel, restTimerSubLabel, restRingOffset, restTimerHandler, onOpenCurrentSwap,
-      overloadBannerVisible, lastSessionVisible, lastSessionRows, weightColumnLabel;
+      overloadBannerVisible, lastSessionVisible, lastSessionRows, weightColumnLabel,
+      prBannerVisible = false, prBannerText = '', dismissPrBanner,
+      exerciseNotes = '', lastExerciseNotes = '', hasLastNotes = false, onExerciseNotesChange;
     weightColumnLabel = unit === 'kg' ? 'Kg' : 'Lbs';
     if (s.workout) {
       const w = s.workout;
@@ -1404,13 +1406,13 @@ class Component extends DCLogic {
       restTimerSubLabel = rt ? 'tap to skip' : 'tap to start';
       restRingOffset = rt ? circumference * (1 - rt.secondsLeft / rt.total) : circumference;
       restTimerHandler = () => { if (rt) this.skipRest(); else this.startRestTimer(curEx.type === 'Compound' ? 120 : 60); };
-      const prBannerVisible = !!(w.prBannerVisible && w.prExerciseName === curEx.name);
-      const prBannerText = w.prWeight != null ? `New PR on ${w.prExerciseName} — ${displayWeight(w.prWeight, unit)}${unit}` : '';
-      const dismissPrBanner = () => this.dismissPrBanner();
-      const exerciseNotes = curEx.notes || '';
-      const lastExerciseNotes = curEx.lastNotes || '';
-      const hasLastNotes = !!(lastExerciseNotes && lastExerciseNotes.trim());
-      const onExerciseNotesChange = (e) => this.updateExerciseNotes(w.exerciseIndex, e.target.value);
+      prBannerVisible = !!(w.prBannerVisible && w.prExerciseName === curEx.name);
+      prBannerText = w.prWeight != null ? `New PR on ${w.prExerciseName} — ${displayWeight(w.prWeight, unit)}${unit}` : '';
+      dismissPrBanner = () => this.dismissPrBanner();
+      exerciseNotes = curEx.notes || '';
+      lastExerciseNotes = curEx.lastNotes || '';
+      hasLastNotes = !!(lastExerciseNotes && lastExerciseNotes.trim());
+      onExerciseNotesChange = (e) => this.updateExerciseNotes(w.exerciseIndex, e.target.value);
     }
 
     const dismissOverloadBanner = () => this.dismissOverloadBanner();
