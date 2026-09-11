@@ -146,7 +146,7 @@ a:hover{color:#3B82F6}
 
 <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:12px">This Week</div>
 <div style="display:flex;gap:6px">
-<sc-for list="{{ weekStrip }}" as="d" hint-placeholder-count="7">
+<sc-for list="{{ weekStrip }}" as="d" hint-placeholder-count="6">
 <div onClick="{{ d.onClick }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:12px;cursor:pointer;background:{{ d.bg }};border:{{ d.border }};min-height:44px">
 <div style="font-size:11px;font-weight:700;color:{{ d.labelColor }}">{{ d.day }}</div>
 <div style="width:7px;height:7px;border-radius:50%;background:{{ d.dotColor }}"></div>
@@ -732,26 +732,22 @@ const PROGRAMMES = {
   ppl: { id: 'ppl', name: 'Push / Pull / Legs', short: 'PPL', frequency: '6x / week',
     onboardingDescription: 'Push / Pull / Legs — 6 sessions per week — Each session repeated twice weekly. Chest, shoulders and triceps. Back and biceps. Legs.',
     sessionDefs: { push, pull1, pull2, legs },
-    week: [
-      { day: 'Mon', key: 'push', label: 'Push 1' },
-      { day: 'Tue', key: 'pull1', label: 'Pull 1' },
-      { day: 'Wed', key: 'legs', label: 'Legs 1' },
-      { day: 'Thu', key: 'push', label: 'Push 2' },
-      { day: 'Fri', key: 'pull2', label: 'Pull 2' },
-      { day: 'Sat', key: 'legs', label: 'Legs 2' },
-      { day: 'Sun', key: null, label: 'Rest' },
+    sessions: [
+      { key: 'push', label: 'Push 1' },
+      { key: 'pull1', label: 'Pull 1' },
+      { key: 'legs', label: 'Legs 1' },
+      { key: 'push', label: 'Push 2' },
+      { key: 'pull2', label: 'Pull 2' },
+      { key: 'legs', label: 'Legs 2' },
     ]},
   ul: { id: 'ul', name: 'Upper / Lower', short: 'U/L', frequency: '4x / week',
     onboardingDescription: 'Upper / Lower — 4 sessions per week — Two upper sessions and two lower sessions per week. Full upper/lower body split.',
     sessionDefs: { upperA, lowerA, upperB, lowerB },
-    week: [
-      { day: 'Mon', key: 'upperA', label: 'Upper A' },
-      { day: 'Tue', key: 'lowerA', label: 'Lower A' },
-      { day: 'Wed', key: null, label: 'Rest' },
-      { day: 'Thu', key: 'upperB', label: 'Upper B' },
-      { day: 'Fri', key: 'lowerB', label: 'Lower B' },
-      { day: 'Sat', key: null, label: 'Rest' },
-      { day: 'Sun', key: null, label: 'Rest' },
+    sessions: [
+      { key: 'upperA', label: 'Upper A' },
+      { key: 'lowerA', label: 'Lower A' },
+      { key: 'upperB', label: 'Upper B' },
+      { key: 'lowerB', label: 'Lower B' },
     ]},
 };
 
@@ -804,7 +800,7 @@ class Component extends DCLogic {
   state = {
     screen: 'splash',
     activePlanId: 'ppl',
-    selectedDayIndex: todayIndex(),
+    selectedSessionLabel: null,
     detailPlanId: 'ppl',
     viewingSession: null,
     cameFromScreen: 'home',
@@ -1222,16 +1218,17 @@ class Component extends DCLogic {
       onClick: () => this.selectActivePlan(p.id),
     }));
 
-    const weekStrip = activePlan.week.map((w, i) => {
-      const selected = i === s.selectedDayIndex;
-      const isRest = !w.key;
+    const weekStrip = planSessions.map((sess, i) => {
+      const isSelected = sess.label === activeLabel;
+      const lastDone = s.history.find(h => h.planId === s.activePlanId && h.sessionName === sess.label);
+      const isRecommended = sess.label === recommendedLabel;
       return {
-        day: w.day, code: isRest ? 'REST' : CODE_MAP[w.key],
-        labelColor: selected ? '#fff' : (isRest ? TEXT_MUTED : TEXT_SEC),
-        dotColor: selected ? ACCENT : (isRest ? BORDER : '#374151'),
-        bg: selected ? 'rgba(37,99,235,0.15)' : 'transparent',
-        border: selected ? '1px solid rgba(37,99,235,0.4)' : '1px solid transparent',
-        onClick: () => { this.setState({ selectedDayIndex: i }); if (w.key) this.openSession(activePlan.id, w.key, w.label, 'home'); },
+        day: sess.label, code: isRecommended && !isSelected ? '▶' : '',
+        labelColor: isSelected ? '#fff' : TEXT_SEC,
+        dotColor: isSelected ? ACCENT : (isRecommended ? WARNING : '#374151'),
+        bg: isSelected ? 'rgba(37,99,235,0.15)' : 'transparent',
+        border: isSelected ? '1px solid rgba(37,99,235,0.4)' : '1px solid transparent',
+        onClick: () => this.setState({ selectedSessionLabel: sess.label }),
       };
     });
 
@@ -1241,7 +1238,7 @@ class Component extends DCLogic {
       bg: p.id === s.detailPlanId ? ACCENT : 'transparent', color: p.id === s.detailPlanId ? '#fff' : TEXT_SEC,
       onClick: () => this.selectDetailPlan(p.id),
     }));
-    const sessionCards = detailPlan.week.filter(w => w.key).map(w => {
+    const sessionCards = detailPlan.sessions.map(w => {
       const def = detailPlan.sessionDefs[w.key];
       const stats = sessionStats(def);
       return { label: w.label, meta: `${stats.exerciseCount} exercises · ${stats.totalSets} sets · ~${stats.estDuration} min`, onClick: () => this.openSession(detailPlan.id, w.key, w.label, 'programmes') };
