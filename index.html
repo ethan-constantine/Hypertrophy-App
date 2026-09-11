@@ -1271,7 +1271,31 @@ class Component extends DCLogic {
       onClick: () => this.selectActivePlan(p.id),
     }));
 
-    const weekStrip = planSessions.map((sess, i) => {
+    const activePlan = PROGRAMMES[s.activePlanId];
+    const planSessions = activePlan.sessions;
+    const planHistory = s.history.filter(h => h.planId === s.activePlanId);
+    let recommendedLabel;
+    if (planHistory.length === 0) {
+      recommendedLabel = planSessions[0].label;
+    } else {
+      const lastLabel = planHistory[0].sessionName;
+      const lastIdx = planSessions.findIndex(sess => sess.label === lastLabel);
+      const nextIdx = lastIdx === -1 ? 0 : (lastIdx + 1) % planSessions.length;
+      recommendedLabel = planSessions[nextIdx].label;
+    }
+    const activeLabel = s.selectedSessionLabel || recommendedLabel;
+    const currentSession = planSessions.find(sess => sess.label === activeLabel) || planSessions[0];
+
+    const homeEyebrow = 'Next Up';
+    const homeTitle = currentSession.label;
+    const homeDef = activePlan.sessionDefs[currentSession.key];
+    const homeStats = sessionStats(homeDef);
+    const homeSessionName = currentSession.label;
+    const homeSessionSubtitle = `${homeStats.exerciseCount} exercises · ${homeStats.totalSets} sets · ~${homeStats.estDuration} min`;
+    const homeShowCta = true;
+    const homeCtaHandler = () => this.openSession(activePlan.id, currentSession.key, currentSession.label, 'home');
+
+        const weekStrip = planSessions.map((sess, i) => {
       const isSelected = sess.label === activeLabel;
       const lastDone = s.history.find(h => h.planId === s.activePlanId && h.sessionName === sess.label);
       const isRecommended = sess.label === recommendedLabel;
