@@ -237,6 +237,14 @@ a:hover{color:#3B82F6}
 </div>
 </sc-if>
 
+<sc-if value="{{ prBannerVisible }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#059669,#047857);border-radius:12px;padding:12px 14px;margin-top:10px;animation:bannerIn 0.3s ease">
+<div style="font-size:22px">&#127942;</div>
+<div style="flex:1;font-size:13px;font-weight:800;color:#fff">{{ prBannerText }}</div>
+<button onClick="{{ dismissPrBanner }}" style="width:22px;height:22px;border-radius:6px;border:none;background:rgba(0,0,0,0.2);color:#fff;font-size:13px;font-weight:800;cursor:pointer">&#x2715;</button>
+</div>
+</sc-if>
+
 <sc-if value="{{ lastSessionVisible }}" hint-placeholder-val="{{ false }}">
 <div style="background:#161616;border-left:3px solid #2563EB;border-radius:8px;padding:10px 12px;margin-top:12px">
 <div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Last Session</div>
@@ -279,6 +287,16 @@ a:hover{color:#3B82F6}
 </div>
 </div>
 </div>
+
+<div style="padding:0 20px 12px">
+<sc-if value="{{ hasLastNotes }}" hint-placeholder-val="{{ false }}">
+<div style="background:#161616;border-left:3px solid #6B7280;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+<div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Last Session Notes</div>
+<div style="font-size:13px;color:#9CA3AF;line-height:1.5">{{ lastExerciseNotes }}</div>
+</div>
+</sc-if>
+<div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Exercise Notes</div>
+<textarea onChange="{{ onExerciseNotesChange }}" placeholder="How did this feel? Technique notes..." style="width:100%;height:68px;background:#161616;border:1px solid #2A2A2A;border-radius:10px;color:#fff;font-size:13px;padding:10px 12px;resize:none;font-family:inherit;line-height:1.4">{{ exerciseNotes }}</textarea>
 </div>
 
 <div style="padding:12px 20px 20px;border-top:1px solid #2A2A2A;display:flex;gap:10px">
@@ -320,6 +338,7 @@ a:hover{color:#3B82F6}
 <div>
 <div style="font-size:13px;font-weight:700;margin-bottom:2px">{{ ex.name }}</div>
 <div style="font-size:12px;color:#9CA3AF">{{ ex.setsText }}</div>
+<sc-if value="{{ ex.hasNotes }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#6B7280;margin-top:3px;font-style:italic">&#128221; {{ ex.notes }}</div></sc-if>
 </div>
 </sc-for>
 </div>
@@ -778,6 +797,36 @@ function formatTime(sec) { const m = Math.floor(sec / 60); const s = sec % 60; r
 function fmt(n) { return Math.round(n).toLocaleString(); }
 function dateOnly(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 function daysBetween(isoA, isoB) { const a = dateOnly(new Date(isoA)), b = dateOnly(new Date(isoB)); return Math.round((b - a) / 86400000); }
+function findPreviousBest(history, sessionName, exerciseName) {
+  for (const h of history) {
+    if (h.sessionName !== sessionName) continue;
+    const ex = h.exercises.find(e => e.name === exerciseName);
+    if (ex && ex.sets && ex.sets.length > 0) {
+      const weights = ex.sets.map(s => parseFloat(s.weightKg) || 0).filter(w => w > 0);
+      if (weights.length > 0) return Math.max(...weights);
+    }
+  }
+  return null;
+}
+function findAllTimeBest(history, exerciseName) {
+  let best = null;
+  for (const h of history) {
+    const ex = h.exercises.find(e => e.name === exerciseName);
+    if (ex && ex.sets && ex.sets.length > 0) {
+      const weights = ex.sets.map(s => parseFloat(s.weightKg) || 0).filter(w => w > 0);
+      if (weights.length > 0) { const sb = Math.max(...weights); if (best === null || sb > best) best = sb; }
+    }
+  }
+  return best;
+}
+function findLastNotes(history, sessionName, exerciseName) {
+  for (const h of history) {
+    if (h.sessionName !== sessionName) continue;
+    const ex = h.exercises.find(e => e.name === exerciseName);
+    if (ex && ex.notes) return ex.notes;
+  }
+  return '';
+}
 
 const KG_PER_LB = 0.453592;
 function kgToLbs(kg) { return kg / KG_PER_LB; }
@@ -789,6 +838,7 @@ function parseInputToKg(raw, unit) { if (raw === '') return ''; const v = parseF
 const STORAGE_KEYS = {
   onboardingComplete: 'gymapp.onboardingComplete', userName: 'gymapp.userName', weightUnit: 'gymapp.weightUnit',
   activePlanId: 'gymapp.activePlanId', history: 'gymapp.history', streak: 'gymapp.streak', celebrated: 'gymapp.celebratedMilestones',
+  nutrition: 'gymapp.nutrition', nutritionResults: 'gymapp.nutritionResults',
 };
 function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
@@ -843,10 +893,14 @@ class Component extends DCLogic {
     const history = loadJSON(STORAGE_KEYS.history, []);
     const streak = loadJSON(STORAGE_KEYS.streak, DEFAULT_STREAK);
     const celebratedMilestones = loadJSON(STORAGE_KEYS.celebrated, []);
+    const savedNutrition = loadJSON(STORAGE_KEYS.nutrition, null);
+    const savedNutritionResults = loadJSON(STORAGE_KEYS.nutritionResults, null);
     this.state = {
       ...this.state,
       onboardingComplete, userName, weightUnit, activePlanId, detailPlanId: activePlanId,
       history, streak, celebratedMilestones,
+      nutrition: savedNutrition || this.state.nutrition,
+      nutritionResults: savedNutritionResults,
       settingsNameDraft: userName,
       screen: 'splash',
     };
@@ -889,11 +943,14 @@ class Component extends DCLogic {
       const name = overrides[idx] || e.name;
       return {
         ...e, name, baseName: e.name,
-        previousBest: mockPreviousBest(name, e.type),
+        previousBest: findPreviousBest(this.state.history, vs.label, name),
+        allTimeBest: findAllTimeBest(this.state.history, name),
+        lastNotes: findLastNotes(this.state.history, vs.label, name),
+        notes: '',
         loggedSets: Array.from({ length: e.sets }, () => ({ weightKg: '', reps: '', rpe: '', done: false })),
       };
     });
-    this.setState({ screen: 'activeWorkout', workout: { planId: vs.planId, key: vs.key, label: vs.label, exerciseIndex: 0, exercises, overloadTriggeredIndex: null, overloadDismissed: false } });
+    this.setState({ screen: 'activeWorkout', workout: { planId: vs.planId, key: vs.key, label: vs.label, exerciseIndex: 0, exercises, overloadTriggeredIndex: null, overloadDismissed: false, prBannerVisible: false, prExerciseName: null, prWeight: null } });
   };
 
   updateSetWeight = (exIdx, rowIdx, raw) => {
@@ -927,16 +984,26 @@ class Component extends DCLogic {
   };
 
   dismissOverloadBanner = () => this.setState(s => ({ workout: { ...s.workout, overloadDismissed: true } }));
+  dismissPrBanner = () => this.setState(s => ({ workout: { ...s.workout, prBannerVisible: false } }));
+  updateExerciseNotes = (exIdx, value) => this.setState(s => {
+    const workout = s.workout;
+    const exercises = workout.exercises.map((e, i) => i !== exIdx ? e : { ...e, notes: value });
+    return { workout: { ...workout, exercises } };
+  });
 
   toggleSetDone = (exIdx, rowIdx) => {
-    const exType = this.state.workout.exercises[exIdx].type;
-    const reps = this.state.workout.exercises[exIdx].loggedSets[rowIdx].reps;
+    const curEx = this.state.workout.exercises[exIdx];
+    const exType = curEx.type;
+    const reps = curEx.loggedSets[rowIdx].reps;
+    const weightKg = parseFloat(curEx.loggedSets[rowIdx].weightKg) || 0;
+    const isPR = weightKg > 0 && (curEx.allTimeBest === null || weightKg > curEx.allTimeBest);
     this.setState(s => {
       const workout = s.workout;
-      const exercises = workout.exercises.map((e, i) => i !== exIdx ? e : {
-        ...e, loggedSets: e.loggedSets.map((row, j) => j !== rowIdx ? row : { ...row, done: true }),
+      const exercises = workout.exercises.map((e, i) => {
+        if (i !== exIdx) return e;
+        return { ...e, allTimeBest: isPR ? weightKg : e.allTimeBest, loggedSets: e.loggedSets.map((row, j) => j !== rowIdx ? row : { ...row, done: true }) };
       });
-      return { workout: { ...workout, exercises } };
+      return { workout: { ...workout, exercises, prBannerVisible: isPR, prExerciseName: isPR ? curEx.name : workout.prExerciseName, prWeight: isPR ? weightKg : workout.prWeight } };
     });
     this.checkOverload(exIdx, reps);
     this.startRestTimer(exType === 'Compound' ? 120 : 60);
@@ -967,8 +1034,8 @@ class Component extends DCLogic {
 
   skipRest = () => { if (this.restIntervalId) clearInterval(this.restIntervalId); this.setState({ restTimer: null }); };
 
-  nextExercise = () => this.setState(s => ({ workout: { ...s.workout, exerciseIndex: Math.min(s.workout.exerciseIndex + 1, s.workout.exercises.length - 1), overloadDismissed: true } }));
-  prevExercise = () => this.setState(s => ({ workout: { ...s.workout, exerciseIndex: Math.max(s.workout.exerciseIndex - 1, 0), overloadDismissed: true } }));
+  nextExercise = () => this.setState(s => ({ workout: { ...s.workout, exerciseIndex: Math.min(s.workout.exerciseIndex + 1, s.workout.exercises.length - 1), overloadDismissed: true, prBannerVisible: false } }));
+  prevExercise = () => this.setState(s => ({ workout: { ...s.workout, exerciseIndex: Math.max(s.workout.exerciseIndex - 1, 0), overloadDismissed: true, prBannerVisible: false } }));
 
   updateStreakOnFinish = () => {
     const today = new Date().toISOString().slice(0, 10);
@@ -1002,10 +1069,10 @@ class Component extends DCLogic {
       const doneSets = e.loggedSets.filter(r => r.done && r.weightKg !== '' && r.reps !== '');
       doneSets.forEach(r => { totalVolume += (parseFloat(r.weightKg) || 0) * (parseFloat(r.reps) || 0); });
       return {
-        name: e.name, repMax: e.repMax,
+        name: e.name, repMax: e.repMax, notes: e.notes || '',
         sets: doneSets.map(r => ({ weightKg: parseFloat(r.weightKg) || 0, reps: parseFloat(r.reps) || 0, rpe: r.rpe })),
       };
-    }).filter(e => e.sets.length);
+    }).filter(e => e.sets.length || e.notes);
     const entry = { id: Date.now(), planId: w.planId, date: new Date().toISOString(), sessionName: w.label, totalVolumeKg: Math.round(totalVolume), exercises };
     if (this.restIntervalId) clearInterval(this.restIntervalId);
     this.setState(s => ({ screen: 'progress', workout: null, restTimer: null, history: [entry, ...s.history] }), () => {
@@ -1064,7 +1131,11 @@ class Component extends DCLogic {
     this.showToast('Reverted to default exercise');
   };
 
-  updateNutritionField = (field, value) => this.setState(s => ({ nutrition: { ...s.nutrition, [field]: value } }));
+  updateNutritionField = (field, value) => this.setState(s => {
+    const nutrition = { ...s.nutrition, [field]: value };
+    saveJSON(STORAGE_KEYS.nutrition, nutrition);
+    return { nutrition };
+  });
   setGender = (g) => this.updateNutritionField('gender', g);
   setActivity = (a) => this.updateNutritionField('activity', a);
 
@@ -1096,14 +1167,9 @@ class Component extends DCLogic {
     const carbsUpper = Math.round((muscleUpper - fatTarget * 9 - proteinTarget * 4) / 4);
     const carbsLower = Math.round((muscleLower - fatMin * 9 - proteinMin * 4) / 4);
 
-    this.setState({
-      nutritionErrors: {},
-      nutritionResults: {
-        bmr: Math.round(bmr), tdee: Math.round(tdee),
-        muscleLower: Math.round(muscleLower), muscleUpper: Math.round(muscleUpper),
-        proteinMin, proteinTarget, fatMin, fatTarget, carbsLower, carbsUpper, isMale,
-      },
-    });
+    const nutritionResults = { bmr: Math.round(bmr), tdee: Math.round(tdee), muscleLower: Math.round(muscleLower), muscleUpper: Math.round(muscleUpper), proteinMin, proteinTarget, fatMin, fatTarget, carbsLower, carbsUpper, isMale };
+    saveJSON(STORAGE_KEYS.nutritionResults, nutritionResults);
+    this.setState({ nutritionErrors: {}, nutritionResults });
   };
 
   onboardingSetName = (v) => this.setState({ onboardingName: v, onboardingNameError: false });
@@ -1149,6 +1215,8 @@ class Component extends DCLogic {
         history: [], streak: DEFAULT_STREAK, celebratedMilestones: [], onboardingComplete: false,
         onboardingStep: 1, onboardingName: '', onboardingProgrammeId: null, onboardingUnit: 'kg',
         userName: '', weightUnit: 'kg', activePlanId: 'ppl', detailPlanId: 'ppl',
+        nutrition: { gender: 'male', age: '', heightCm: '', heightFt: '', heightIn: '', weightKg: '', weightLbs: '', activity: 'moderate' },
+        nutritionResults: null, nutritionErrors: {},
         confirmDialog: null, screen: 'onboarding',
       });
     }
@@ -1293,7 +1361,7 @@ class Component extends DCLogic {
       currentExerciseName = curEx.name;
       exerciseProgressText = `${w.exerciseIndex + 1} / ${w.exercises.length}`;
       progressPct = Math.round(((w.exerciseIndex + 1) / w.exercises.length) * 100);
-      previousBestText = `${displayWeight(curEx.previousBest, unit)}${unit}`;
+      previousBestText = curEx.previousBest != null ? `${displayWeight(curEx.previousBest, unit)}${unit}` : 'No data yet';
       setsRepReminder = `${curEx.sets} sets × ${curEx.repMin}–${curEx.repMax} reps · ${effortText(curEx)}`;
       onOpenCurrentSwap = () => this.openSwapSheet('workout', w.exerciseIndex, curEx.name, curEx.baseName);
       overloadBannerVisible = w.overloadTriggeredIndex === w.exerciseIndex && !w.overloadDismissed;
@@ -1336,6 +1404,13 @@ class Component extends DCLogic {
       restTimerSubLabel = rt ? 'tap to skip' : 'tap to start';
       restRingOffset = rt ? circumference * (1 - rt.secondsLeft / rt.total) : circumference;
       restTimerHandler = () => { if (rt) this.skipRest(); else this.startRestTimer(curEx.type === 'Compound' ? 120 : 60); };
+      const prBannerVisible = !!(w.prBannerVisible && w.prExerciseName === curEx.name);
+      const prBannerText = w.prWeight != null ? `New PR on ${w.prExerciseName} — ${displayWeight(w.prWeight, unit)}${unit}` : '';
+      const dismissPrBanner = () => this.dismissPrBanner();
+      const exerciseNotes = curEx.notes || '';
+      const lastExerciseNotes = curEx.lastNotes || '';
+      const hasLastNotes = !!(lastExerciseNotes && lastExerciseNotes.trim());
+      const onExerciseNotesChange = (e) => this.updateExerciseNotes(w.exerciseIndex, e.target.value);
     }
 
     const dismissOverloadBanner = () => this.dismissOverloadBanner();
@@ -1346,7 +1421,7 @@ class Component extends DCLogic {
       expanded: s.expandedHistoryId === h.id,
       onToggle: () => this.toggleHistoryExpand(h.id),
       exercises: h.exercises.map(e => ({
-        name: e.name,
+        name: e.name, notes: e.notes || '', hasNotes: !!(e.notes && e.notes.trim()),
         setsText: e.sets.map((set, i) => `Set ${i + 1} — ${displayWeight(set.weightKg, unit)}${unit} × ${set.reps}${set.rpe ? ` @RPE ${set.rpe}` : ''}`).join(' · '),
       })),
     }));
@@ -1471,6 +1546,8 @@ class Component extends DCLogic {
       setRows, addSetHandler, isLastExercise, isNotLastExercise, showPrevButton,
       nextExerciseHandler, prevExerciseHandler, finishWorkoutHandler, exitWorkoutHandler,
       restTimerLabel, restTimerSubLabel, restRingOffset, restTimerHandler,
+      prBannerVisible, prBannerText, dismissPrBanner,
+      exerciseNotes, lastExerciseNotes, hasLastNotes, onExerciseNotesChange,
       touchStart: this.touchStart, touchEnd: this.touchEnd,
       historyEntries, historyEmpty,
       tabs,
