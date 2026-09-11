@@ -1255,24 +1255,6 @@ class Component extends DCLogic {
     const onOnboardingUnitKg = () => this.onboardingSetUnit('kg');
     const onOnboardingUnitLbs = () => this.onboardingSetUnit('lbs');
 
-    const activePlan = PROGRAMMES[s.activePlanId];
-    const weekEntry = activePlan.week[s.selectedDayIndex];
-    const isRealToday = s.selectedDayIndex === todayIndex();
-
-    const homeEyebrow = isRealToday ? 'Today' : DAY_FULL[s.selectedDayIndex];
-    const homeTitle = weekEntry.key ? (isRealToday ? "Today's Session" : weekEntry.label) : 'Rest Day';
-    let homeSessionName, homeSessionSubtitle;
-    if (weekEntry.key) {
-      const def = activePlan.sessionDefs[weekEntry.key];
-      const stats = sessionStats(def);
-      homeSessionName = weekEntry.label;
-      homeSessionSubtitle = `${stats.exerciseCount} exercises · ${stats.totalSets} sets · ~${stats.estDuration} min`;
-    } else {
-      homeSessionName = 'Rest Day';
-      homeSessionSubtitle = 'Recovery day — no session scheduled.';
-    }
-    const homeShowCta = !!weekEntry.key;
-    const homeCtaHandler = () => this.openSession(activePlan.id, weekEntry.key, weekEntry.label, 'home');
     const openSettingsHandler = () => this.openSettings();
 
     const streakCards = [
