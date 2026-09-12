@@ -114,7 +114,7 @@ const PROGS={
 };
 
 // ── STORAGE ──────────────────────────────────────────────────────────
-const K={ob:'cf.ob',name:'cf.name',unit:'cf.unit',plan:'cf.plan',hist:'cf.hist',streak:'cf.streak',cel:'cf.cel',nutr:'cf.nutr',nres:'cf.nres'};
+const K={ob:'cf.ob',name:'cf.name',unit:'cf.unit',plan:'cf.plan',hist:'cf.hist',streak:'cf.streak',cel:'cf.cel',nutr:'cf.nutr',nres:'cf.nres',swaps:'cf.swaps'};
 const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
 
@@ -427,93 +427,119 @@ function SessionOverview({planId,sess,hist,unit,onStart,onBack}){
           </div>
         </>
       )}
-    </div>
-  );
-}
+ 
+function ActiveWorkout({planId,sess,overrides,hist,unit,swaps,onSwap,onFinish,onExit}){
+  const swapKey=(idx)=>`${planId}_${sess.label}_${idx}`;
+  const resolveName=(e,idx)=>overrides[idx]||(swaps[swapKey(idx)])||e.name;
+  const def=PROGS[planId]&&PROGS[planId].defs[sess.key];
+  if(!def)return(<div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'#9CA3AF',fontSize:14}}>Session not found.</div>);
 
-function ActiveWorkout({planId,sess,overrides,hist,unit,onFinish,onExit}){
-  const def=PROGS[planId].defs[sess.key];
-  const [exIdx,setExIdx]=useState(0);
-  const [exercises,setExercises]=useState(()=>def.exercises.map((e,idx)=>{
-    const name=overrides[idx]||e.name;
-    return{...e,name,baseName:e.name,
-      pb:prevBest(hist,sess.label,name),
-      atb:allTimeBest(hist,name),
+  const initEx=()=>def.exercises.map((e,idx)=>{
+    const name=resolveName(e,idx);
+    const pb=prevBest(hist,sess.label,name);
+    return{...e,name,baseName:e.name,idx,
+      pb,atb:allTimeBest(hist,name),
       lastNotes:lastNotes(hist,sess.label,name),
       notes:'',
-      sets:Array.from({length:e.sets},(_,si)=>({
-        kg: prevBest(hist,sess.label,name)!=null ? String(toDisp(prevBest(hist,sess.label,name),unit)) : '',
+      sets:Array.from({length:e.sets},()=>({
+        kg:pb!=null?String(toDisp(pb,unit)):'',
         reps:'',rpe:'',done:false}))};
-  }));
+  });
+
+  const [exIdx,setExIdx]=useState(0);
+  const [exercises,setExercises]=useState(initEx);
   const [overloadIdx,setOverloadIdx]=useState(null);
-  const [overloadDismissed,setOverloadDismissed]=useState(false);
+  const [overloadOff,setOverloadOff]=useState(false);
   const [pr,setPr]=useState(null);
-  const [swap,setSwap]=useState(null);
+  const [showSwap,setShowSwap]=useState(false);
   const {timer,start:startTimer,stop:stopTimer}=useTimer();
   const touchX=useRef(null);
+  const workoutStart=useRef(Date.now());
 
-  const curEx=exercises[exIdx];
+  const cur=exercises[exIdx]||exercises[0];
   const isLast=exIdx===exercises.length-1;
-
-  function markDone(setIdx){
-    const row=curEx.sets[setIdx];
-    const kg=parseFloat(row.kg)||0;
-    const isPR=kg>0&&(curEx.atb===null||kg>curEx.atb);
-    setExercises(prev=>prev.map((e,i)=>{
-      if(i!==exIdx)return e;
-      const newSets=e.sets.map((s,j)=>j!==setIdx?s:{...s,done:true});
-      const newAtb=isPR?kg:e.atb;
-      return{...e,sets:newSets,atb:newAtb};
-    }));
-    if(isPR)setPr({name:curEx.name,kg,unit});
-    // Check overload
-    if(Number(row.reps)>=curEx.rMax){setOverloadIdx(exIdx);setOverloadDismissed(false);}
-    startTimer(curEx.type==='Compound'?120:60);
-  }
-
-  function updateSet(setIdx,field,val){
-    setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,sets:e.sets.map((s,j)=>j!==setIdx?s:{...s,[field]:val})}));
-  }
-
-  function nextEx(){setExIdx(i=>Math.min(i+1,exercises.length-1));setOverloadDismissed(true);setPr(null);}
-  function prevEx(){setExIdx(i=>Math.max(i-1,0));setOverloadDismissed(true);setPr(null);}
-
-  function doSwap(name){
-    setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,name,pb:prevBest(hist,sess.label,name),atb:allTimeBest(hist,name)}));
-    setSwap(null);
-  }
-
-  function finish(){
-    let vol=0;
-    const prs=[];
-    const exData=exercises.map(e=>{
-      const done=e.sets.filter(s=>s.done&&s.kg!==''&&s.reps!=='');
-      done.forEach(s=>{vol+=(parseFloat(s.kg)||0)*(parseFloat(s.reps)||0);});
-      // Collect PRs (sets where weight exceeded previous all-time best)
-      done.forEach(s=>{
-        const kg=parseFloat(s.kg)||0;
-        if(kg>0&&(e.atb===null||kg>e.atb)){
-          if(!prs.find(p=>p.name===e.name)){prs.push({name:e.name,weight:toDisp(kg,unit)});}
-        }
-      });
-      return{name:e.name,rMax:e.rMax,notes:e.notes,sets:done.map(s=>({kg:parseFloat(s.kg)||0,reps:parseFloat(s.reps)||0,rpe:s.rpe}))};
-    }).filter(e=>e.sets.length||e.notes);
-    onFinish({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:exData},prs);
-  }
-
   const pct=Math.round(((exIdx+1)/exercises.length)*100);
   const circ=326.7;
   const offset=timer?circ*(1-timer.left/timer.total):circ;
 
+  function upd(setIdx,field,val){
+    setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,sets:e.sets.map((s,j)=>j!==setIdx?s:{...s,[field]:val})}));
+  }
+
+  function markDone(setIdx){
+    const row=cur.sets[setIdx];
+    const kg=parseFloat(row.kg)||0;
+    const isPR=kg>0&&(cur.atb===null||kg>cur.atb);
+    setExercises(prev=>prev.map((e,i)=>{
+      if(i!==exIdx)return e;
+      return{...e,atb:isPR?kg:e.atb,sets:e.sets.map((s,j)=>j!==setIdx?s:{...s,done:true})};
+    }));
+    if(isPR)setPr({name:cur.name,kg});
+    if(Number(row.reps)>=cur.rMax){setOverloadIdx(exIdx);setOverloadOff(false);}
+    startTimer(cur.type==='Compound'?120:60);
+  }
+
+  function addSet(){
+    setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,sets:[...e.sets,{kg:'',reps:'',rpe:'',done:false}]}));
+  }
+
+  function doSwap(newName){
+    // Save swap permanently
+    onSwap(swapKey(cur.idx),newName);
+    setExercises(prev=>prev.map((e,i)=>{
+      if(i!==exIdx)return e;
+      const pb=prevBest(hist,sess.label,newName);
+      return{...e,name:newName,pb,atb:allTimeBest(hist,newName),lastNotes:lastNotes(hist,sess.label,newName),
+        sets:e.sets.map(s=>({...s,kg:pb!=null?String(toDisp(pb,unit)):s.kg}))};
+    }));
+    setShowSwap(false);
+  }
+
+  function resetSwap(){
+    onSwap(swapKey(cur.idx),null);
+    setExercises(prev=>prev.map((e,i)=>{
+      if(i!==exIdx)return e;
+      const pb=prevBest(hist,sess.label,e.baseName);
+      return{...e,name:e.baseName,pb,atb:allTimeBest(hist,e.baseName)};
+    }));
+    setShowSwap(false);
+  }
+
+  function nextEx(){setExIdx(i=>Math.min(i+1,exercises.length-1));setOverloadOff(true);setPr(null);}
+  function prevEx(){setExIdx(i=>Math.max(i-1,0));setOverloadOff(true);setPr(null);}
+
+  function finish(){
+    let vol=0;const prs=[];
+    const exData=exercises.map(e=>{
+      const done=e.sets.filter(s=>s.done&&s.kg!==''&&s.reps!=='');
+      done.forEach(s=>{
+        const kg=parseFloat(s.kg)||0;
+        vol+=kg*(parseFloat(s.reps)||0);
+        if(kg>0&&(e.atb===null||kg>e.atb)&&!prs.find(p=>p.name===e.name))
+          prs.push({name:e.name,weight:toDisp(kg,unit)});
+      });
+      return{name:e.name,rMax:e.rMax,notes:e.notes||'',
+        sets:done.map(s=>({kg:parseFloat(s.kg)||0,reps:parseFloat(s.reps)||0,rpe:s.rpe}))};
+    }).filter(e=>e.sets.length||e.notes);
+    const dur=Math.round((Date.now()-workoutStart.current)/60000);
+    onFinish({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:exData},prs,dur);
+  }
+
+  // Find last session data for current exercise
+  const lastH=hist.find(h=>h.label===sess.label&&h.exercises.find(x=>x.name===cur.name));
+  const lastEx=lastH?.exercises.find(x=>x.name===cur.name);
+
+  const inputStyle={width:'100%',height:40,background:'#0A0A0A',border:`1px solid ${B}`,borderRadius:8,color:'#fff',fontSize:15,textAlign:'center',outline:'none'};
+
   return(
-    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',paddingTop:62}}
+    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',paddingTop:56}}
       onTouchStart={e=>{touchX.current=e.touches[0].clientX;}}
       onTouchEnd={e=>{if(touchX.current===null)return;const dx=e.changedTouches[0].clientX-touchX.current;touchX.current=null;if(dx<-50)nextEx();else if(dx>50)prevEx();}}>
 
-      {/* Progress bar */}
-      <div style={{padding:'0 20px'}}>
+      {/* Top bar */}
+      <div style={{padding:'0 16px 8px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-          <Btn onClick={onExit} style={{width:32,height:32,borderRadius:9,background:'#1E1E1E',border:`1px solid ${B}`,color:'#9CA3AF',fontSize:13}}>✕</Btn>
+          <Btn onClick={onExit} style={{width:34,height:34,borderRadius:9,background:'#1E1E1E',border:`1px solid ${B}`,color:'#9CA3AF',fontSize:13}}>✕</Btn>
           <div style={{fontSize:13,fontWeight:700,color:'#9CA3AF'}}>{exIdx+1} / {exercises.length}</div>
         </div>
         <div style={{height:4,background:'#1E1E1E',borderRadius:2,overflow:'hidden'}}>
@@ -522,117 +548,136 @@ function ActiveWorkout({planId,sess,overrides,hist,unit,onFinish,onExit}){
       </div>
 
       {/* Exercise header */}
-      <div style={{padding:'14px 20px 4px'}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-          <div style={{fontSize:22,fontWeight:800}}>{curEx.name}</div>
-          <Btn onClick={()=>setSwap(true)} style={{width:26,height:26,borderRadius:'50%',background:'#1E1E1E',border:`1px solid ${B}`,color:'#9CA3AF',fontSize:12}}>⇄</Btn>
+      <div style={{padding:'8px 16px 4px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+          <div style={{fontSize:20,fontWeight:800,flex:1}}>{cur.name}</div>
+          <Btn onClick={()=>setShowSwap(true)} style={{width:28,height:28,borderRadius:'50%',background:'#1E1E1E',border:`1px solid ${B}`,color:'#9CA3AF',fontSize:13,flexShrink:0}}>⇄</Btn>
         </div>
-        <div style={{fontSize:12,color:'#6B7280',marginBottom:2}}>Previous best: {curEx.pb!=null?`${toDisp(curEx.pb,unit)}${unit}`:'No data yet'}</div>
-        <div style={{fontSize:11,color:'#6B7280'}}>{curEx.sets} sets × {curEx.rMin}–{curEx.rMax} reps · {effortTxt(curEx)}</div>
+        <div style={{fontSize:12,color:'#6B7280',marginBottom:1}}>
+          Previous best: <span style={{color:'#9CA3AF',fontWeight:600}}>{cur.pb!=null?`${toDisp(cur.pb,unit)}${unit}`:'No data yet'}</span>
+        </div>
+        <div style={{fontSize:11,color:'#6B7280'}}>{cur.sets} sets · {cur.rMin}–{cur.rMax} reps · {effortTxt(cur)}</div>
 
         {/* Overload banner */}
-        {overloadIdx===exIdx&&!overloadDismissed&&(
-          <div style={{display:'flex',alignItems:'center',gap:10,background:W,borderRadius:12,padding:'10px 12px',marginTop:10,animation:'bannerIn 0.25s ease'}}>
-            <span style={{fontSize:16}}>🏆</span>
-            <div style={{flex:1,fontSize:12,fontWeight:800,color:'#1E1300'}}>Top of range — increase weight next session</div>
-            <Btn onClick={()=>setOverloadDismissed(true)} style={{width:20,height:20,borderRadius:5,background:'rgba(0,0,0,0.15)',color:'#1E1300',fontSize:11}}>✕</Btn>
+        {overloadIdx===exIdx&&!overloadOff&&(
+          <div style={{display:'flex',alignItems:'center',gap:8,background:W,borderRadius:10,padding:'8px 12px',marginTop:8}}>
+            <span>🏆</span>
+            <div style={{flex:1,fontSize:12,fontWeight:800,color:'#fff'}}>Top of range — add weight next session</div>
+            <Btn onClick={()=>setOverloadOff(true)} style={{width:18,height:18,borderRadius:4,background:'rgba(0,0,0,0.2)',color:'#fff',fontSize:10}}>✕</Btn>
           </div>
         )}
 
         {/* PR banner */}
         {pr&&(
-          <div style={{display:'flex',alignItems:'center',gap:10,background:`linear-gradient(135deg,${G},#047857)`,borderRadius:12,padding:'10px 12px',marginTop:10,animation:'bannerIn 0.3s ease'}}>
-            <span style={{fontSize:18}}>🏆</span>
-            <div style={{flex:1,fontSize:13,fontWeight:800,color:'#fff'}}>New PR — {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
-            <Btn onClick={()=>setPr(null)} style={{width:20,height:20,borderRadius:5,background:'rgba(0,0,0,0.2)',color:'#fff',fontSize:11}}>✕</Btn>
+          <div style={{display:'flex',alignItems:'center',gap:8,background:`linear-gradient(135deg,${G},#047857)`,borderRadius:10,padding:'8px 12px',marginTop:8}}>
+            <span>🏆</span>
+            <div style={{flex:1,fontSize:12,fontWeight:800,color:'#fff'}}>New PR — {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
+            <Btn onClick={()=>setPr(null)} style={{width:18,height:18,borderRadius:4,background:'rgba(0,0,0,0.2)',color:'#fff',fontSize:10}}>✕</Btn>
           </div>
         )}
 
-        {/* Last session reference */}
-        {(()=>{const h=hist.find(e=>e.label===sess.label&&e.exercises.find(x=>x.name===curEx.name));const ex=h?.exercises.find(x=>x.name===curEx.name);return ex&&ex.sets.length?(
-          <div style={{background:'#161616',borderLeft:`3px solid ${A}`,borderRadius:8,padding:'8px 12px',marginTop:10}}>
-            <div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>Last Session</div>
-            {ex.sets.map((s,i)=><div key={i} style={{fontSize:12,color:'#9CA3AF',lineHeight:1.6}}>Set {i+1} — {toDisp(s.kg,unit)}{unit} × {s.reps} reps{s.rpe?` @ RPE ${s.rpe}`:''}</div>)}
+        {/* Last session box */}
+        {lastEx&&lastEx.sets.length>0&&(
+          <div style={{background:'#161616',borderLeft:`3px solid ${A}`,borderRadius:8,padding:'8px 12px',marginTop:8}}>
+            <div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:3}}>Last Session</div>
+            {lastEx.sets.map((s,i)=>(
+              <div key={i} style={{fontSize:12,color:'#9CA3AF',lineHeight:1.6}}>
+                Set {i+1} — {toDisp(s.kg,unit)}{unit} × {s.reps} reps{s.rpe?` @ RPE ${s.rpe}`:''}
+              </div>
+            ))}
+            {lastEx.notes&&<div style={{fontSize:11,color:'#6B7280',marginTop:4,fontStyle:'italic'}}>📝 {lastEx.notes}</div>}
           </div>
-        ):null;})()}
+        )}
       </div>
 
-      {/* Sets */}
-      <div style={{flex:1,overflowY:'auto',padding:'8px 20px 4px'}}>
-        <div style={{display:'grid',gridTemplateColumns:'26px 1fr 1fr 1fr 44px',gap:6,padding:'0 4px 8px',fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>
+      {/* Scrollable sets area */}
+      <div style={{flex:1,overflowY:'auto',padding:'6px 16px 4px'}}>
+        {/* Column headers */}
+        <div style={{display:'grid',gridTemplateColumns:'26px 1fr 1fr 1fr 44px',gap:6,padding:'0 2px 6px',fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>
           <div>Set</div><div>{unit==='kg'?'Kg':'Lbs'}</div><div>Reps</div><div>RPE</div><div/>
         </div>
-        {curEx.sets.map((row,i)=>(
-          <div key={i} style={{display:'grid',gridTemplateColumns:'26px 1fr 1fr 1fr 44px',gap:6,alignItems:'center',background:row.done?'rgba(5,150,105,0.12)':S,border:`1px solid ${row.done?'rgba(5,150,105,0.5)':B}`,borderRadius:12,padding:8,marginBottom:6}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#9CA3AF',textAlign:'center'}}>{i+1}</div>
-            <input value={row.kg} onChange={e=>updateSet(i,'kg',e.target.value)} type="number" inputMode="decimal" placeholder="0"
-              style={{width:'100%',height:38,background:'#0A0A0A',border:`1px solid ${B}`,borderRadius:8,color:'#fff',fontSize:14,textAlign:'center',outline:'none'}}/>
-            <input value={row.reps} onChange={e=>updateSet(i,'reps',e.target.value)} type="number" inputMode="numeric" placeholder="0"
-              style={{width:'100%',height:38,background:'#0A0A0A',border:`1px solid ${B}`,borderRadius:8,color:'#fff',fontSize:14,textAlign:'center',outline:'none'}}/>
-            <input value={row.rpe} onChange={e=>updateSet(i,'rpe',e.target.value)} type="number" inputMode="numeric" placeholder="-" min="1" max="10"
-              style={{width:'100%',height:38,background:'#0A0A0A',border:`1px solid ${B}`,borderRadius:8,color:'#fff',fontSize:14,textAlign:'center',outline:'none'}}/>
-            <Btn onClick={()=>markDone(i)} style={{width:'100%',height:38,borderRadius:8,background:row.done?G:'#1E1E1E',color:row.done?'#fff':'#9CA3AF',fontSize:15,fontWeight:700}}>{row.done?'✓':'—'}</Btn>
+
+        {/* Set rows */}
+        {cur.sets.map((row,i)=>(
+          <div key={i} style={{display:'grid',gridTemplateColumns:'26px 1fr 1fr 1fr 44px',gap:6,alignItems:'center',background:row.done?'rgba(5,150,105,0.1)':'#161616',border:`1px solid ${row.done?'rgba(5,150,105,0.4)':B}`,borderRadius:10,padding:'6px',marginBottom:6}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#6B7280',textAlign:'center'}}>{i+1}</div>
+            <input value={row.kg} onChange={e=>upd(i,'kg',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="0" style={inputStyle}/>
+            <input value={row.reps} onChange={e=>upd(i,'reps',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" style={inputStyle}/>
+            <input value={row.rpe} onChange={e=>upd(i,'rpe',e.target.value)} type="text" inputMode="numeric" pattern="[1-9]|10" autoComplete="off" placeholder="–" style={inputStyle}/>
+            <Btn onClick={()=>markDone(i)} style={{width:'100%',height:40,borderRadius:8,background:row.done?G:'#1E1E1E',color:row.done?'#fff':'#6B7280',fontSize:16,fontWeight:700}}>{row.done?'✓':'—'}</Btn>
           </div>
         ))}
-        <Btn onClick={()=>setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,sets:[...e.sets,{kg:'',reps:'',rpe:'',done:false}]}))}
-          style={{width:'100%',height:44,borderRadius:12,border:`1px dashed ${B}`,background:'transparent',color:'#9CA3AF',fontSize:14,fontWeight:600,marginTop:4}}>+ Add Set</Btn>
+
+        <Btn onClick={addSet} style={{width:'100%',height:40,borderRadius:10,border:`1px dashed ${B}`,background:'transparent',color:'#6B7280',fontSize:13,fontWeight:600,marginTop:2}}>+ Add Set</Btn>
 
         {/* Rest timer */}
-        <div style={{display:'flex',justifyContent:'center',padding:'20px 0 8px'}}>
-          <div onClick={()=>timer?stopTimer():startTimer(curEx.type==='Compound'?120:60)} style={{position:'relative',width:100,height:100,cursor:'pointer'}}>
-            <svg width="100" height="100" viewBox="0 0 120 120" style={{transform:'rotate(-90deg)'}}>
+        <div style={{display:'flex',justifyContent:'center',padding:'16px 0 6px'}}>
+          <div onClick={()=>timer?stopTimer():startTimer(cur.type==='Compound'?120:60)} style={{position:'relative',width:96,height:96,cursor:'pointer'}}>
+            <svg width="96" height="96" viewBox="0 0 120 120" style={{transform:'rotate(-90deg)'}}>
               <circle cx="60" cy="60" r="52" fill="none" stroke="#1E1E1E" strokeWidth="8"/>
               <circle cx="60" cy="60" r="52" fill="none" stroke={A} strokeWidth="8" strokeLinecap="round" strokeDasharray="326.7" strokeDashoffset={offset} style={{transition:'stroke-dashoffset 1s linear'}}/>
             </svg>
             <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-              <div style={{fontSize:18,fontWeight:800}}>{timer?fmtTime(timer.left):'Rest'}</div>
-              <div style={{fontSize:9,color:'#6B7280',fontWeight:600,textTransform:'uppercase'}}>{timer?'tap to skip':'tap to start'}</div>
+              <div style={{fontSize:17,fontWeight:800}}>{timer?fmtTime(timer.left):'Rest'}</div>
+              <div style={{fontSize:9,color:'#6B7280',fontWeight:600,textTransform:'uppercase'}}>{timer?'skip':'start'}</div>
             </div>
           </div>
         </div>
 
         {/* Notes */}
-        <div style={{padding:'0 0 8px'}}>
-          {curEx.lastNotes&&<div style={{background:S,borderLeft:`3px solid #6B7280`,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
-            <div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>Last Session Notes</div>
-            <div style={{fontSize:13,color:'#9CA3AF',lineHeight:1.5}}>{curEx.lastNotes}</div>
-          </div>}
-          <Label>Exercise Notes</Label>
-          <textarea value={curEx.notes} onChange={e=>setExercises(prev=>prev.map((ex,i)=>i!==exIdx?ex:{...ex,notes:e.target.value}))}
-            placeholder="How did this feel? Technique notes..."
-            style={{width:'100%',height:68,background:S,border:`1px solid ${B}`,borderRadius:10,color:'#fff',fontSize:13,padding:'10px 12px',resize:'none',fontFamily:'inherit',lineHeight:1.4,outline:'none'}}/>
-        </div>
+        {cur.lastNotes&&(
+          <div style={{background:'#161616',borderLeft:'3px solid #4B5563',borderRadius:8,padding:'8px 12px',marginBottom:8}}>
+            <div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:3}}>Last Session Notes</div>
+            <div style={{fontSize:12,color:'#9CA3AF',lineHeight:1.5}}>{cur.lastNotes}</div>
+          </div>
+        )}
+        <Label style={{marginBottom:4}}>Session Notes</Label>
+        <textarea value={cur.notes} onChange={e=>setExercises(prev=>prev.map((ex,i)=>i!==exIdx?ex:{...ex,notes:e.target.value}))}
+          placeholder="How did this feel? Technique notes..."
+          style={{width:'100%',height:64,background:'#161616',border:`1px solid ${B}`,borderRadius:10,color:'#fff',fontSize:13,padding:'8px 12px',resize:'none',fontFamily:'inherit',lineHeight:1.4,outline:'none',marginBottom:8}}/>
       </div>
 
-      {/* Bottom buttons */}
-      <div style={{padding:'10px 20px 20px',borderTop:`1px solid ${B}`,display:'flex',gap:10}}>
-        {exIdx>0&&<Btn onClick={prevEx} style={{width:52,height:52,borderRadius:12,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:18}}>‹</Btn>}
+      {/* Bottom nav */}
+      <div style={{padding:'8px 16px 24px',borderTop:`1px solid ${B}`,display:'flex',gap:8,flexShrink:0}}>
+        {exIdx>0&&<Btn onClick={prevEx} style={{width:48,height:50,borderRadius:12,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:18}}>‹</Btn>}
         {isLast
-          ?<Btn onClick={finish} style={{flex:1,height:52,borderRadius:12,background:G,color:'#fff',fontSize:16,fontWeight:700}}>Finish Workout</Btn>
-          :<Btn onClick={nextEx} style={{flex:1,height:52,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:16,fontWeight:700}}>Next Exercise</Btn>}
+          ?<Btn onClick={finish} style={{flex:1,height:50,borderRadius:12,background:G,color:'#fff',fontSize:16,fontWeight:700}}>Finish Workout ✓</Btn>
+          :<Btn onClick={nextEx} style={{flex:1,height:50,borderRadius:12,background:`linear-gradient(135deg,#B45309,${A})`,color:'#000',fontSize:16,fontWeight:700}}>Next Exercise →</Btn>}
       </div>
 
       {/* Swap sheet */}
-      {swap&&(
+      {showSwap&&(
         <>
-          <div onClick={()=>setSwap(null)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.6)',zIndex:40}}/>
-          <div style={{position:'absolute',left:0,right:0,bottom:0,maxHeight:'70%',background:S,borderRadius:'20px 20px 0 0',zIndex:41,display:'flex',flexDirection:'column',animation:'slideUp 0.25s ease'}}>
-            <div onClick={()=>setSwap(null)} style={{display:'flex',justifyContent:'center',padding:'10px 0 6px',cursor:'pointer'}}><div style={{width:40,height:5,borderRadius:3,background:'#3A3A3A'}}/></div>
+          <div onClick={()=>setShowSwap(false)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.65)',zIndex:40,animation:'fadeIn 0.2s ease'}}/>
+          <div style={{position:'absolute',left:0,right:0,bottom:0,maxHeight:'72%',background:'#161616',borderRadius:'20px 20px 0 0',zIndex:41,display:'flex',flexDirection:'column',animation:'slideUp 0.25s ease',boxShadow:'0 -8px 30px rgba(0,0,0,0.5)'}}>
+            <div onClick={()=>setShowSwap(false)} style={{display:'flex',justifyContent:'center',padding:'10px 0 6px',cursor:'pointer'}}>
+              <div style={{width:40,height:4,borderRadius:2,background:'#3A3A3A'}}/>
+            </div>
             <div style={{padding:'4px 20px 12px',borderBottom:`1px solid ${B}`}}>
               <div style={{fontSize:17,fontWeight:800}}>Swap Exercise</div>
-              <div style={{fontSize:13,color:'#9CA3AF',marginTop:2}}>Currently: {curEx.name}</div>
+              <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>Currently: {cur.name}</div>
+              <div style={{fontSize:11,color:A,marginTop:2,fontWeight:600}}>💾 Swap saves permanently for this session</div>
             </div>
-            <div style={{overflowY:'auto',padding:'10px 20px 20px',display:'flex',flexDirection:'column',gap:8}}>
-              {(ALT_MAP[curEx.baseName]||[]).map((alt,i)=>(
-                <div key={i} onClick={()=>doSwap(alt)} style={{padding:'12px 14px',borderRadius:12,background:'#1E1E1E',border:`1px solid ${B}`,cursor:'pointer',fontSize:14,fontWeight:600}}>{alt}</div>
+            <div style={{overflowY:'auto',padding:'10px 20px 24px',display:'flex',flexDirection:'column',gap:8}}>
+              {(ALT_MAP[cur.baseName]||[]).map((alt,i)=>(
+                <div key={i} onClick={()=>doSwap(alt)}
+                  style={{padding:'12px 14px',borderRadius:12,background:cur.name===alt?`rgba(245,158,11,0.15)`:'#1E1E1E',border:`1px solid ${cur.name===alt?A:B}`,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div style={{fontSize:14,fontWeight:600}}>{alt}</div>
+                  {cur.name===alt&&<div style={{fontSize:11,color:A,fontWeight:700}}>current</div>}
+                </div>
               ))}
-              <div onClick={()=>{setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,name:e.baseName}));setSwap(null);}}
-                style={{padding:14,borderRadius:12,border:`1px dashed ${B}`,color:'#6B7280',fontSize:13,fontWeight:700,cursor:'pointer',textAlign:'center'}}>Reset to default</div>
+              {cur.name!==cur.baseName&&(
+                <div onClick={resetSwap} style={{padding:12,borderRadius:12,border:`1px dashed ${B}`,color:'#6B7280',fontSize:13,fontWeight:700,cursor:'pointer',textAlign:'center'}}>Reset to default ({cur.baseName})</div>
+              )}
             </div>
           </div>
         </>
       )}
     </div>
+  );
+}
+
+   </div>
   );
 }
 
@@ -923,6 +968,7 @@ function App(){
   const [viewSess,setViewSess]=useState(null); // {planId,sess}
   const [workoutData,setWorkoutData]=useState(null); // {planId,sess,overrides}
   const [nutrInputs,setNutrInputs]=useState(null);
+  const [swaps,setSwaps]=useState(()=>load(K.swaps,{}));
   const [completeData,setCompleteData]=useState(null);
   const [workoutStart,setWorkoutStart]=useState(null);
   const [nutrRes,setNutrRes]=useState(null);
@@ -1012,8 +1058,8 @@ function App(){
       {/* Screens */}
       {screen==='home'&&<Home userName={userName} planId={planId} hist={hist} streak={streak} onSession={sess=>setViewSess({planId,sess})||setScreen('session')} onTabChange={goTab} onSettings={()=>setScreen('settings')}/>}
       {screen==='programmes'&&<Programmes planId={planId} onSession={({planId:p,sess})=>{setViewSess({planId:p,sess});setScreen('session');}} onChangePlan={p=>{setPlanId(p);save(K.plan,p);}}/>}
-      {screen==='session'&&viewSess&&<SessionOverview planId={viewSess.planId} sess={viewSess.sess} hist={hist} unit={unit} onStart={overrides=>startSession(viewSess.planId,viewSess.sess,overrides)} onBack={()=>setScreen(activeTab)}/>}
-      {screen==='workout'&&workoutData&&<ActiveWorkout planId={workoutData.planId} sess={workoutData.sess} overrides={workoutData.overrides} hist={hist} unit={unit} onFinish={finishWorkout} onExit={()=>{setWorkoutData(null);setScreen(activeTab);}}/>}
+      {screen==='session'&&viewSess&&<SessionOverview planId={viewSess.planId} sess={viewSess.sess} hist={hist} unit={unit} swaps={swaps} onSwap={(k,v)=>{const ns={...swaps,[k]:v};setSwaps(ns);save(K.swaps,ns);}} onStart={overrides=>startSession(viewSess.planId,viewSess.sess,overrides)} onBack={()=>setScreen(activeTab)}/>}
+      {screen==='workout'&&workoutData&&<ActiveWorkout planId={workoutData.planId} sess={workoutData.sess} overrides={workoutData.overrides} hist={hist} unit={unit} swaps={swaps} onSwap={(k,v)=>{const ns={...swaps,[k]:v};setSwaps(ns);save(K.swaps,ns);}} onFinish={finishWorkout} onExit={()=>{setWorkoutData(null);setScreen(activeTab);}}/>}
       {screen==='complete'&&completeData&&<WorkoutComplete entry={completeData.entry} unit={unit} prs={completeData.prs} duration={completeData.duration} onDone={()=>{setCompleteData(null);setScreen('home');setActiveTab('home');}}/> }
       {screen==='progress'&&<Progress hist={hist} unit={unit}/>}
       {screen==='nutrition'&&<Nutrition saved={nutrInputs} savedRes={nutrRes} unit={unit} onSaveInputs={v=>{setNutrInputs(v);save(K.nutr,v);}} onSaveResults={v=>{setNutrRes(v);save(K.nres,v);}}/>}
