@@ -432,87 +432,86 @@ function SessionOverview({planId,sess,hist,unit,onStart,onBack}){
 }
 
 function ActiveWorkout({planId,sess,overrides,hist,unit,swaps,onSwap,onFinish,onExit}){
-  const swapKey=(idx)=>`${planId}_${sess.label}_${idx}`;
-  const resolveName=(e,idx)=>overrides[idx]||(swaps[swapKey(idx)])||e.name;
-  const def=PROGS[planId]&&PROGS[planId].defs[sess.key];
-  if(!def)return(<div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'#9CA3AF',fontSize:14}}>Session not found.</div>);
+  // All hooks MUST come before any conditional returns (Rules of Hooks)
+  const def = PROGS[planId] && PROGS[planId].defs[sess.key];
 
-  const initEx=()=>def.exercises.map((e,idx)=>{
-    const name=resolveName(e,idx);
-    const pb=prevBest(hist,sess.label,name);
-    return{...e,name,baseName:e.name,idx,
-      pb,atb:allTimeBest(hist,name),
-      lastNotes:lastNotes(hist,sess.label,name),
-      notes:'',
-      sets:Array.from({length:e.sets},()=>({
-        kg:pb!=null?String(toDisp(pb,unit)):'',
-        reps:'',rpe:'',done:false}))};
+  const [exIdx,setExIdx]       = useState(0);
+  const [exercises,setExercises] = useState(()=>{
+    if(!def) return [];
+    return def.exercises.map((e,i)=>{
+      const nm = (overrides&&overrides[i]) || (swaps&&swaps[`${planId}_${sess.label}_${i}`]) || e.name;
+      const pb = prevBest(hist, sess.label, nm);
+      return {...e, name:nm, baseName:e.name, eidx:i,
+        pb, atb:allTimeBest(hist,nm), lastNotes:lastNotes(hist,sess.label,nm), notes:'',
+        sets:Array.from({length:e.sets},()=>({
+          kg: pb!=null ? String(toDisp(pb,unit)) : '',
+          reps:'', rpe:'', done:false}))};
+    });
   });
+  const [overloadIdx,setOverloadIdx] = useState(null);
+  const [overloadOff,setOverloadOff] = useState(false);
+  const [pr,setPr]           = useState(null);
+  const [showSwap,setShowSwap] = useState(false);
+  const {timer,start:startTimer,stop:stopTimer} = useTimer();
+  const touchX    = useRef(null);
+  const startedAt = useRef(Date.now());
 
-  const [exIdx,setExIdx]=useState(0);
-  const [exercises,setExercises]=useState(initEx);
-  const [overloadIdx,setOverloadIdx]=useState(null);
-  const [overloadOff,setOverloadOff]=useState(false);
-  const [pr,setPr]=useState(null);
-  const [showSwap,setShowSwap]=useState(false);
-  const {timer,start:startTimer,stop:stopTimer}=useTimer();
-  const touchX=useRef(null);
-  const workoutStart=useRef(Date.now());
+  // Safe to conditionally return AFTER all hooks
+  if(!def || exercises.length===0) return(
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12,background:'#0A0A0A'}}>
+      <div style={{fontSize:14,color:'#9CA3AF'}}>Session not found.</div>
+      <Btn onClick={onExit} style={{padding:'10px 20px',borderRadius:10,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:14}}>Go Back</Btn>
+    </div>
+  );
 
-  const cur=exercises[exIdx]||exercises[0];
-  const isLast=exIdx===exercises.length-1;
-  const pct=Math.round(((exIdx+1)/exercises.length)*100);
-  const circ=326.7;
-  const offset=timer?circ*(1-timer.left/timer.total):circ;
+  const swapKey  = (i) => `${planId}_${sess.label}_${i}`;
+  const cur      = exercises[exIdx] || exercises[0];
+  const isLast   = exIdx === exercises.length - 1;
+  const pct      = Math.round(((exIdx+1)/exercises.length)*100);
+  const circ     = 326.7;
+  const offset   = timer ? circ*(1-timer.left/timer.total) : circ;
 
-  function upd(setIdx,field,val){
-    setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,sets:e.sets.map((s,j)=>j!==setIdx?s:{...s,[field]:val})}));
+  function updSet(si,field,val){
+    setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,sets:e.sets.map((s,j)=>j!==si?s:{...s,[field]:val})}));
   }
-
-  function markDone(setIdx){
-    const row=cur.sets[setIdx];
+  function markDone(si){
+    const row=cur.sets[si];
     const kg=parseFloat(row.kg)||0;
     const isPR=kg>0&&(cur.atb===null||kg>cur.atb);
     setExercises(prev=>prev.map((e,i)=>{
       if(i!==exIdx)return e;
-      return{...e,atb:isPR?kg:e.atb,sets:e.sets.map((s,j)=>j!==setIdx?s:{...s,done:true})};
+      return{...e,atb:isPR?kg:e.atb,sets:e.sets.map((s,j)=>j!==si?s:{...s,done:true})};
     }));
     if(isPR)setPr({name:cur.name,kg});
     if(Number(row.reps)>=cur.rMax){setOverloadIdx(exIdx);setOverloadOff(false);}
     startTimer(cur.type==='Compound'?120:60);
   }
-
   function addSet(){
     setExercises(prev=>prev.map((e,i)=>i!==exIdx?e:{...e,sets:[...e.sets,{kg:'',reps:'',rpe:'',done:false}]}));
   }
-
   function doSwap(newName){
-    // Save swap permanently
-    onSwap(swapKey(cur.idx),newName);
+    if(onSwap)onSwap(swapKey(cur.eidx),newName);
     setExercises(prev=>prev.map((e,i)=>{
       if(i!==exIdx)return e;
-      const pb=prevBest(hist,sess.label,newName);
-      return{...e,name:newName,pb,atb:allTimeBest(hist,newName),lastNotes:lastNotes(hist,sess.label,newName),
-        sets:e.sets.map(s=>({...s,kg:pb!=null?String(toDisp(pb,unit)):s.kg}))};
+      const pb2=prevBest(hist,sess.label,newName);
+      return{...e,name:newName,pb:pb2,atb:allTimeBest(hist,newName),lastNotes:lastNotes(hist,sess.label,newName),
+        sets:e.sets.map(s=>({...s,kg:pb2!=null?String(toDisp(pb2,unit)):s.kg}))};
     }));
     setShowSwap(false);
   }
-
   function resetSwap(){
-    onSwap(swapKey(cur.idx),null);
+    if(onSwap)onSwap(swapKey(cur.eidx),null);
     setExercises(prev=>prev.map((e,i)=>{
       if(i!==exIdx)return e;
-      const pb=prevBest(hist,sess.label,e.baseName);
-      return{...e,name:e.baseName,pb,atb:allTimeBest(hist,e.baseName)};
+      const pb2=prevBest(hist,sess.label,e.baseName);
+      return{...e,name:e.baseName,pb:pb2,atb:allTimeBest(hist,e.baseName)};
     }));
     setShowSwap(false);
   }
-
   function nextEx(){setExIdx(i=>Math.min(i+1,exercises.length-1));setOverloadOff(true);setPr(null);}
   function prevEx(){setExIdx(i=>Math.max(i-1,0));setOverloadOff(true);setPr(null);}
-
   function finish(){
-    let vol=0;const prs=[];
+    let vol=0; const prs=[];
     const exData=exercises.map(e=>{
       const done=e.sets.filter(s=>s.done&&s.kg!==''&&s.reps!=='');
       done.forEach(s=>{
@@ -524,104 +523,90 @@ function ActiveWorkout({planId,sess,overrides,hist,unit,swaps,onSwap,onFinish,on
       return{name:e.name,rMax:e.rMax,notes:e.notes||'',
         sets:done.map(s=>({kg:parseFloat(s.kg)||0,reps:parseFloat(s.reps)||0,rpe:s.rpe}))};
     }).filter(e=>e.sets.length||e.notes);
-    const dur=Math.round((Date.now()-workoutStart.current)/60000);
+    const dur=Math.round((Date.now()-startedAt.current)/60000);
     onFinish({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:exData},prs,dur);
   }
 
-  // Find last session data for current exercise
-  const lastH=hist.find(h=>h.label===sess.label&&h.exercises.find(x=>x.name===cur.name));
-  const lastEx=lastH?.exercises.find(x=>x.name===cur.name);
-
-  const inputStyle={width:'100%',height:40,background:'#0A0A0A',border:`1px solid ${B}`,borderRadius:8,color:'#fff',fontSize:15,textAlign:'center',outline:'none'};
+  const lastH  = hist.find(h=>h.label===sess.label&&h.exercises.find(x=>x.name===cur.name));
+  const lastEx = lastH?.exercises.find(x=>x.name===cur.name);
+  const iStyle = {width:'100%',height:42,background:'#0A0A0A',border:`1px solid ${B}`,borderRadius:8,color:'#fff',fontSize:15,textAlign:'center',outline:'none'};
 
   return(
-    <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',paddingTop:56}}
+    <div style={{flex:1,display:'flex',flexDirection:'column',background:'#0A0A0A',paddingTop:52}}
       onTouchStart={e=>{touchX.current=e.touches[0].clientX;}}
       onTouchEnd={e=>{if(touchX.current===null)return;const dx=e.changedTouches[0].clientX-touchX.current;touchX.current=null;if(dx<-50)nextEx();else if(dx>50)prevEx();}}>
 
       {/* Top bar */}
-      <div style={{padding:'0 16px 8px'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+      <div style={{padding:'0 16px 8px',flexShrink:0}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           <Btn onClick={onExit} style={{width:34,height:34,borderRadius:9,background:'#1E1E1E',border:`1px solid ${B}`,color:'#9CA3AF',fontSize:13}}>✕</Btn>
           <div style={{fontSize:13,fontWeight:700,color:'#9CA3AF'}}>{exIdx+1} / {exercises.length}</div>
         </div>
-        <div style={{height:4,background:'#1E1E1E',borderRadius:2,overflow:'hidden'}}>
+        <div style={{height:4,background:'#1E1E1E',borderRadius:2}}>
           <div style={{height:'100%',background:A,borderRadius:2,width:`${pct}%`,transition:'width 0.3s'}}/>
         </div>
       </div>
 
       {/* Exercise header */}
-      <div style={{padding:'8px 16px 4px'}}>
+      <div style={{padding:'4px 16px 6px',flexShrink:0}}>
         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
-          <div style={{fontSize:20,fontWeight:800,flex:1}}>{cur.name}</div>
-          <Btn onClick={()=>setShowSwap(true)} style={{width:28,height:28,borderRadius:'50%',background:'#1E1E1E',border:`1px solid ${B}`,color:'#9CA3AF',fontSize:13,flexShrink:0}}>⇄</Btn>
+          <div style={{fontSize:19,fontWeight:800,flex:1,color:'#fff'}}>{cur.name}</div>
+          <Btn onClick={()=>setShowSwap(true)} style={{width:28,height:28,borderRadius:'50%',background:'#1E1E1E',border:`1px solid ${B}`,color:'#9CA3AF',fontSize:13}}>⇄</Btn>
         </div>
-        <div style={{fontSize:12,color:'#6B7280',marginBottom:1}}>
+        <div style={{fontSize:12,color:'#6B7280'}}>
           Previous best: <span style={{color:'#9CA3AF',fontWeight:600}}>{cur.pb!=null?`${toDisp(cur.pb,unit)}${unit}`:'No data yet'}</span>
         </div>
-        <div style={{fontSize:11,color:'#6B7280'}}>{cur.sets} sets · {cur.rMin}–{cur.rMax} reps · {effortTxt(cur)}</div>
+        <div style={{fontSize:11,color:'#6B7280',marginTop:2}}>{cur.sets} sets · {cur.rMin}–{cur.rMax} reps · {effortTxt(cur)}</div>
 
-        {/* Overload banner */}
         {overloadIdx===exIdx&&!overloadOff&&(
           <div style={{display:'flex',alignItems:'center',gap:8,background:W,borderRadius:10,padding:'8px 12px',marginTop:8}}>
-            <span>🏆</span>
-            <div style={{flex:1,fontSize:12,fontWeight:800,color:'#fff'}}>Top of range — add weight next session</div>
-            <Btn onClick={()=>setOverloadOff(true)} style={{width:18,height:18,borderRadius:4,background:'rgba(0,0,0,0.2)',color:'#fff',fontSize:10}}>✕</Btn>
+            <span style={{fontSize:14}}>🏆</span>
+            <div style={{flex:1,fontSize:12,fontWeight:800,color:'#fff'}}>Top of range — increase weight next session</div>
+            <Btn onClick={()=>setOverloadOff(true)} style={{width:18,height:18,borderRadius:4,background:'rgba(0,0,0,0.25)',color:'#fff',fontSize:10}}>✕</Btn>
           </div>
         )}
-
-        {/* PR banner */}
         {pr&&(
-          <div style={{display:'flex',alignItems:'center',gap:8,background:`linear-gradient(135deg,${G},#047857)`,borderRadius:10,padding:'8px 12px',marginTop:8}}>
-            <span>🏆</span>
+          <div style={{display:'flex',alignItems:'center',gap:8,background:G,borderRadius:10,padding:'8px 12px',marginTop:8}}>
+            <span style={{fontSize:14}}>🏆</span>
             <div style={{flex:1,fontSize:12,fontWeight:800,color:'#fff'}}>New PR — {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
-            <Btn onClick={()=>setPr(null)} style={{width:18,height:18,borderRadius:4,background:'rgba(0,0,0,0.2)',color:'#fff',fontSize:10}}>✕</Btn>
+            <Btn onClick={()=>setPr(null)} style={{width:18,height:18,borderRadius:4,background:'rgba(0,0,0,0.25)',color:'#fff',fontSize:10}}>✕</Btn>
           </div>
         )}
-
-        {/* Last session box */}
         {lastEx&&lastEx.sets.length>0&&(
           <div style={{background:'#161616',borderLeft:`3px solid ${A}`,borderRadius:8,padding:'8px 12px',marginTop:8}}>
             <div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:3}}>Last Session</div>
             {lastEx.sets.map((s,i)=>(
-              <div key={i} style={{fontSize:12,color:'#9CA3AF',lineHeight:1.6}}>
-                Set {i+1} — {toDisp(s.kg,unit)}{unit} × {s.reps} reps{s.rpe?` @ RPE ${s.rpe}`:''}
-              </div>
+              <div key={i} style={{fontSize:12,color:'#9CA3AF',lineHeight:1.6}}>Set {i+1} — {toDisp(s.kg,unit)}{unit} × {s.reps} reps{s.rpe?` @ RPE ${s.rpe}`:''}</div>
             ))}
-            {lastEx.notes&&<div style={{fontSize:11,color:'#6B7280',marginTop:4,fontStyle:'italic'}}>📝 {lastEx.notes}</div>}
           </div>
         )}
       </div>
 
-      {/* Scrollable sets area */}
-      <div style={{flex:1,overflowY:'auto',padding:'6px 16px 4px'}}>
-        {/* Column headers */}
-        <div style={{display:'grid',gridTemplateColumns:'26px 1fr 1fr 1fr 44px',gap:6,padding:'0 2px 6px',fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>
-          <div>Set</div><div>{unit==='kg'?'Kg':'Lbs'}</div><div>Reps</div><div>RPE</div><div/>
+      {/* Scrollable middle */}
+      <div style={{flex:1,overflowY:'auto',padding:'4px 16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'24px 1fr 1fr 1fr 42px',gap:5,padding:'0 2px 6px',fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>
+          <div>#</div><div>{unit==='kg'?'Kg':'Lbs'}</div><div>Reps</div><div>RPE</div><div/>
         </div>
-
-        {/* Set rows */}
         {cur.sets.map((row,i)=>(
-          <div key={i} style={{display:'grid',gridTemplateColumns:'26px 1fr 1fr 1fr 44px',gap:6,alignItems:'center',background:row.done?'rgba(5,150,105,0.1)':'#161616',border:`1px solid ${row.done?'rgba(5,150,105,0.4)':B}`,borderRadius:10,padding:'6px',marginBottom:6}}>
-            <div style={{fontSize:13,fontWeight:700,color:'#6B7280',textAlign:'center'}}>{i+1}</div>
-            <input value={row.kg} onChange={e=>upd(i,'kg',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="0" style={inputStyle}/>
-            <input value={row.reps} onChange={e=>upd(i,'reps',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" style={inputStyle}/>
-            <input value={row.rpe} onChange={e=>upd(i,'rpe',e.target.value)} type="text" inputMode="numeric" pattern="[1-9]|10" autoComplete="off" placeholder="–" style={inputStyle}/>
-            <Btn onClick={()=>markDone(i)} style={{width:'100%',height:40,borderRadius:8,background:row.done?G:'#1E1E1E',color:row.done?'#fff':'#6B7280',fontSize:16,fontWeight:700}}>{row.done?'✓':'—'}</Btn>
+          <div key={i} style={{display:'grid',gridTemplateColumns:'24px 1fr 1fr 1fr 42px',gap:5,alignItems:'center',background:row.done?'rgba(5,150,105,0.1)':'#161616',border:`1px solid ${row.done?'rgba(5,150,105,0.4)':B}`,borderRadius:10,padding:'5px',marginBottom:5}}>
+            <div style={{fontSize:12,fontWeight:700,color:'#6B7280',textAlign:'center'}}>{i+1}</div>
+            <input value={row.kg}   onChange={e=>updSet(i,'kg',e.target.value)}   type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="0"  style={iStyle}/>
+            <input value={row.reps} onChange={e=>updSet(i,'reps',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*"   autoComplete="off" placeholder="0"  style={iStyle}/>
+            <input value={row.rpe}  onChange={e=>updSet(i,'rpe',e.target.value)}  type="text" inputMode="numeric" pattern="[0-9]*"   autoComplete="off" placeholder="–" style={iStyle}/>
+            <Btn onClick={()=>markDone(i)} style={{width:'100%',height:42,borderRadius:8,background:row.done?G:'#1E1E1E',color:row.done?'#fff':'#6B7280',fontSize:16,fontWeight:700}}>{row.done?'✓':'—'}</Btn>
           </div>
         ))}
-
-        <Btn onClick={addSet} style={{width:'100%',height:40,borderRadius:10,border:`1px dashed ${B}`,background:'transparent',color:'#6B7280',fontSize:13,fontWeight:600,marginTop:2}}>+ Add Set</Btn>
+        <Btn onClick={addSet} style={{width:'100%',height:38,borderRadius:10,border:`1px dashed ${B}`,background:'transparent',color:'#6B7280',fontSize:13,fontWeight:600,marginBottom:12}}>+ Add Set</Btn>
 
         {/* Rest timer */}
-        <div style={{display:'flex',justifyContent:'center',padding:'16px 0 6px'}}>
-          <div onClick={()=>timer?stopTimer():startTimer(cur.type==='Compound'?120:60)} style={{position:'relative',width:96,height:96,cursor:'pointer'}}>
-            <svg width="96" height="96" viewBox="0 0 120 120" style={{transform:'rotate(-90deg)'}}>
-              <circle cx="60" cy="60" r="52" fill="none" stroke="#1E1E1E" strokeWidth="8"/>
-              <circle cx="60" cy="60" r="52" fill="none" stroke={A} strokeWidth="8" strokeLinecap="round" strokeDasharray="326.7" strokeDashoffset={offset} style={{transition:'stroke-dashoffset 1s linear'}}/>
+        <div style={{display:'flex',justifyContent:'center',padding:'8px 0 12px'}}>
+          <div onClick={()=>timer?stopTimer():startTimer(cur.type==='Compound'?120:60)} style={{position:'relative',width:90,height:90,cursor:'pointer'}}>
+            <svg width="90" height="90" viewBox="0 0 120 120" style={{transform:'rotate(-90deg)'}}>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="#1E1E1E" strokeWidth="9"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke={A} strokeWidth="9" strokeLinecap="round" strokeDasharray="326.7" strokeDashoffset={offset} style={{transition:'stroke-dashoffset 1s linear'}}/>
             </svg>
             <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-              <div style={{fontSize:17,fontWeight:800}}>{timer?fmtTime(timer.left):'Rest'}</div>
+              <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>{timer?fmtTime(timer.left):'Rest'}</div>
               <div style={{fontSize:9,color:'#6B7280',fontWeight:600,textTransform:'uppercase'}}>{timer?'skip':'start'}</div>
             </div>
           </div>
@@ -634,43 +619,45 @@ function ActiveWorkout({planId,sess,overrides,hist,unit,swaps,onSwap,onFinish,on
             <div style={{fontSize:12,color:'#9CA3AF',lineHeight:1.5}}>{cur.lastNotes}</div>
           </div>
         )}
-        <Label style={{marginBottom:4}}>Session Notes</Label>
+        <div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>Session Notes</div>
         <textarea value={cur.notes} onChange={e=>setExercises(prev=>prev.map((ex,i)=>i!==exIdx?ex:{...ex,notes:e.target.value}))}
           placeholder="How did this feel? Technique notes..."
-          style={{width:'100%',height:64,background:'#161616',border:`1px solid ${B}`,borderRadius:10,color:'#fff',fontSize:13,padding:'8px 12px',resize:'none',fontFamily:'inherit',lineHeight:1.4,outline:'none',marginBottom:8}}/>
+          style={{width:'100%',height:60,background:'#161616',border:`1px solid ${B}`,borderRadius:10,color:'#fff',fontSize:13,padding:'8px 12px',resize:'none',fontFamily:'inherit',lineHeight:1.4,outline:'none',marginBottom:8}}/>
       </div>
 
       {/* Bottom nav */}
-      <div style={{padding:'8px 16px 24px',borderTop:`1px solid ${B}`,display:'flex',gap:8,flexShrink:0}}>
-        {exIdx>0&&<Btn onClick={prevEx} style={{width:48,height:50,borderRadius:12,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:18}}>‹</Btn>}
+      <div style={{padding:'8px 16px 28px',borderTop:`1px solid ${B}`,display:'flex',gap:8,flexShrink:0,background:'#0A0A0A'}}>
+        {exIdx>0&&<Btn onClick={prevEx} style={{width:46,height:50,borderRadius:12,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:18}}>‹</Btn>}
         {isLast
-          ?<Btn onClick={finish} style={{flex:1,height:50,borderRadius:12,background:G,color:'#fff',fontSize:16,fontWeight:700}}>Finish Workout ✓</Btn>
-          :<Btn onClick={nextEx} style={{flex:1,height:50,borderRadius:12,background:`linear-gradient(135deg,#B45309,${A})`,color:'#000',fontSize:16,fontWeight:700}}>Next Exercise →</Btn>}
+          ?<Btn onClick={finish} style={{flex:1,height:50,borderRadius:12,background:G,color:'#fff',fontSize:15,fontWeight:700}}>Finish Workout ✓</Btn>
+          :<Btn onClick={nextEx} style={{flex:1,height:50,borderRadius:12,background:`linear-gradient(135deg,#B45309,${A})`,color:'#000',fontSize:15,fontWeight:700}}>Next Exercise →</Btn>}
       </div>
 
       {/* Swap sheet */}
       {showSwap&&(
         <>
-          <div onClick={()=>setShowSwap(false)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.65)',zIndex:40,animation:'fadeIn 0.2s ease'}}/>
-          <div style={{position:'absolute',left:0,right:0,bottom:0,maxHeight:'72%',background:'#161616',borderRadius:'20px 20px 0 0',zIndex:41,display:'flex',flexDirection:'column',animation:'slideUp 0.25s ease',boxShadow:'0 -8px 30px rgba(0,0,0,0.5)'}}>
+          <div onClick={()=>setShowSwap(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:40}}/>
+          <div style={{position:'fixed',left:0,right:0,bottom:0,maxHeight:'72%',background:'#161616',borderRadius:'20px 20px 0 0',zIndex:41,display:'flex',flexDirection:'column',boxShadow:'0 -8px 30px rgba(0,0,0,0.5)'}}>
             <div onClick={()=>setShowSwap(false)} style={{display:'flex',justifyContent:'center',padding:'10px 0 6px',cursor:'pointer'}}>
               <div style={{width:40,height:4,borderRadius:2,background:'#3A3A3A'}}/>
             </div>
-            <div style={{padding:'4px 20px 12px',borderBottom:`1px solid ${B}`}}>
-              <div style={{fontSize:17,fontWeight:800}}>Swap Exercise</div>
+            <div style={{padding:'4px 20px 10px',borderBottom:`1px solid ${B}`}}>
+              <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Swap Exercise</div>
               <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>Currently: {cur.name}</div>
-              <div style={{fontSize:11,color:A,marginTop:2,fontWeight:600}}>💾 Swap saves permanently for this session</div>
+              <div style={{fontSize:11,color:A,fontWeight:600,marginTop:2}}>💾 Saves permanently for this session</div>
             </div>
-            <div style={{overflowY:'auto',padding:'10px 20px 24px',display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{overflowY:'auto',padding:'8px 20px 24px',display:'flex',flexDirection:'column',gap:7}}>
               {(ALT_MAP[cur.baseName]||[]).map((alt,i)=>(
                 <div key={i} onClick={()=>doSwap(alt)}
-                  style={{padding:'12px 14px',borderRadius:12,background:cur.name===alt?`rgba(245,158,11,0.15)`:'#1E1E1E',border:`1px solid ${cur.name===alt?A:B}`,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <div style={{fontSize:14,fontWeight:600}}>{alt}</div>
+                  style={{padding:'12px 14px',borderRadius:12,background:cur.name===alt?`rgba(245,158,11,0.12)`:'#1E1E1E',border:`1px solid ${cur.name===alt?A:B}`,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div style={{fontSize:14,fontWeight:600,color:'#fff'}}>{alt}</div>
                   {cur.name===alt&&<div style={{fontSize:11,color:A,fontWeight:700}}>current</div>}
                 </div>
               ))}
               {cur.name!==cur.baseName&&(
-                <div onClick={resetSwap} style={{padding:12,borderRadius:12,border:`1px dashed ${B}`,color:'#6B7280',fontSize:13,fontWeight:700,cursor:'pointer',textAlign:'center'}}>Reset to default ({cur.baseName})</div>
+                <div onClick={resetSwap} style={{padding:12,borderRadius:12,border:`1px dashed ${B}`,color:'#6B7280',fontSize:13,fontWeight:700,cursor:'pointer',textAlign:'center'}}>
+                  Reset to default ({cur.baseName})
+                </div>
               )}
             </div>
           </div>
