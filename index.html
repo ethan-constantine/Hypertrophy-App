@@ -747,48 +747,25 @@ function Nutrition({saved,savedRes,unit,onSaveInputs,onSaveResults}){
         </div>
         <div>
           <Label>Height</Label>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <NumIn field="cm" lbl="Centimetres (cm)"/>
-            </div>
-            <div style={{fontSize:11,color:'#6B7280',textAlign:'center',fontWeight:600}}>— or —</div>
-            <div style={{display:'flex',gap:8}}>
-              <NumIn field="ft" lbl="Feet (ft)"/>
-              <NumIn field="inch" lbl="Inches (in)"/>
-            </div>
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>cm</div>
+            <input value={n.cm} onChange={e=>upd('cm',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="e.g. 178"
+              style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.h?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
           </div>
-          {errs.h&&<div style={{fontSize:12,color:W,marginTop:4}}>{errs.h}</div>}
-        </div>
-        <div>
-          <Label>Body Weight</Label>
-          <div style={{display:'flex',gap:10,alignItems:'flex-end'}}>
+          <div style={{fontSize:11,color:'#6B7280',textAlign:'center',fontWeight:600,marginBottom:8}}>— or —</div>
+          <div style={{display:'flex',gap:10}}>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>kg</div>
-              <input value={n.kg} onChange={e=>upd('kg',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" autoComplete="off" placeholder="e.g. 80"
-                style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.w?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
+              <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>ft</div>
+              <input value={n.ft} onChange={e=>upd('ft',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="5"
+                style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.h?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
             </div>
-            <div style={{paddingBottom:14,color:'#6B7280',fontSize:12,fontWeight:600,flexShrink:0}}>or</div>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>lbs</div>
-              <input value={n.lbs} onChange={e=>upd('lbs',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" autoComplete="off" placeholder="e.g. 176"
-                style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.w?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
+              <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>in</div>
+              <input value={n.inch} onChange={e=>upd('inch',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="10"
+                style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.h?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
             </div>
           </div>
-          {errs.w&&<div style={{fontSize:12,color:W,marginTop:4}}>{errs.w}</div>}
-        </div>
-        <div>
-          <Label>Activity Level</Label>
-          <div style={{display:'flex',flexDirection:'column',gap:6}}>
-            {ACTS.map(a=>(
-              <div key={a.v} onClick={()=>{const next={...n,activity:a.v};setN(next);onSaveInputs(next);}} style={{padding:'10px 12px',borderRadius:10,background:n.activity===a.v?'rgba(37,99,235,0.12)':'#1E1E1E',border:`1px solid ${n.activity===a.v?A:B}`,cursor:'pointer'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                  <div style={{fontSize:14,fontWeight:700,color:n.activity===a.v?'#fff':'#E5E7EB'}}>{a.t}</div>
-                  {a.rec&&<div style={{fontSize:9,fontWeight:700,color:G,background:'rgba(5,150,105,0.15)',borderRadius:5,padding:'2px 6px'}}>RECOMMENDED</div>}
-                </div>
-                <div style={{fontSize:12,color:'#6B7280',marginTop:2}}>{a.d}</div>
-              </div>
-            ))}
-          </div>
+          {errs.h&&<div style={{fontSize:12,color:W,marginTop:8}}>{errs.h}</div>}
         </div>
         <Btn onClick={calc} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:16,fontWeight:700}}>Calculate</Btn>
       </Card>
