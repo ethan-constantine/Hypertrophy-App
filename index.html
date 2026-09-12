@@ -427,7 +427,10 @@ function SessionOverview({planId,sess,hist,unit,onStart,onBack}){
           </div>
         </>
       )}
- 
+    </div>
+  );
+}
+
 function ActiveWorkout({planId,sess,overrides,hist,unit,swaps,onSwap,onFinish,onExit}){
   const swapKey=(idx)=>`${planId}_${sess.label}_${idx}`;
   const resolveName=(e,idx)=>overrides[idx]||(swaps[swapKey(idx)])||e.name;
