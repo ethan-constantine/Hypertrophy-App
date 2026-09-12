@@ -30,7 +30,7 @@ input,textarea{outline:none;-webkit-appearance:none;border-radius:0}
 const {useState,useEffect,useRef,useCallback}=React;
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────
-const A=A,G='#059669',W='#D97706',S='#161616',B='#2A2A2A';
+const A='#F59E0B',G='#059669',W='#EF4444',S='#161616',B='#2A2A2A';
 
 const ALT_MAP={
   // ── Chest pressing
@@ -1045,6 +1045,7 @@ function App(){
       {screen==='programmes'&&<Programmes planId={planId} onSession={({planId:p,sess})=>{setViewSess({planId:p,sess});setScreen('session');}} onChangePlan={p=>{setPlanId(p);save(K.plan,p);}}/>}
       {screen==='session'&&viewSess&&<SessionOverview planId={viewSess.planId} sess={viewSess.sess} hist={hist} unit={unit} onStart={overrides=>startSession(viewSess.planId,viewSess.sess,overrides)} onBack={()=>setScreen(activeTab)}/>}
       {screen==='workout'&&workoutData&&<ActiveWorkout planId={workoutData.planId} sess={workoutData.sess} overrides={workoutData.overrides} hist={hist} unit={unit} onFinish={finishWorkout} onExit={()=>{setWorkoutData(null);setScreen(activeTab);}}/>}
+      {screen==='complete'&&completeData&&<WorkoutComplete entry={completeData.entry} unit={unit} prs={completeData.prs} duration={completeData.duration} onDone={()=>{setCompleteData(null);setScreen('home');setActiveTab('home');}}/> }
       {screen==='progress'&&<Progress hist={hist} unit={unit}/>}
       {screen==='nutrition'&&<Nutrition saved={nutrInputs} savedRes={nutrRes} unit={unit} onSaveInputs={v=>{setNutrInputs(v);save(K.nutr,v);}} onSaveResults={v=>{setNutrRes(v);save(K.nres,v);}}/>}
       {screen==='settings'&&<Settings name={userName} unit={unit} planId={planId} onSave={savePrefs} onReset={resetPlan} onResetAll={resetAll} onClose={()=>setScreen(activeTab)}/>}
