@@ -33,25 +33,35 @@ const {useState,useEffect,useRef,useCallback}=React;
 const A='#2563EB',G='#059669',W='#D97706',S='#161616',B='#2A2A2A';
 
 const ALT_MAP={
-  'Flat Barbell Bench Press':['Flat Dumbbell Press','Flat Machine Chest Press','Flat Smith Machine Press','Incline Smith Machine Press','Incline Barbell Press'],
-  'Incline Dumbbell Press':['Incline Barbell Press','Incline Machine Press','Incline Smith Machine Press','Low-to-High Cable Fly'],
-  'Standing Overhead Press':['Seated Barbell Overhead Press','Seated Dumbbell Shoulder Press','Machine Shoulder Press','Smith Machine Overhead Press','Cable Shoulder Press'],
-  'Dumbbell Lateral Raise':['Cable Lateral Raise','Machine Lateral Raise','Plate Lateral Raise'],
-  'Cable Lateral Raise':['Dumbbell Lateral Raise','Machine Lateral Raise','Plate Lateral Raise'],
-  'Cable Overhead Tricep Extension':['Skullcrusher','Dumbbell Overhead Tricep Extension','Cable Pushdown (Rope)','Cable Pushdown (Bar)','Machine Tricep Extension','Dips'],
-  'Cable Pushdown (Rope)':['Cable Pushdown (Bar)','Skullcrusher','Dumbbell Overhead Tricep Extension','Machine Tricep Extension','Dips'],
-  'Skullcrusher':['Cable Overhead Tricep Extension','Dumbbell Overhead Tricep Extension','Cable Pushdown (Rope)','Machine Tricep Extension'],
-  'Dumbbell Overhead Tricep Extension':['Cable Overhead Tricep Extension','Skullcrusher','Cable Pushdown (Rope)','Machine Tricep Extension'],
-  'Bent Over Barbell Row':['Seated Cable Row','Chest-Supported Row Machine','Dumbbell Row','T-Bar Row','Machine Row'],
-  'V-Bar Lat Pulldown':['Wide-Grip Lat Pulldown','Chin-Up','Pull-Up','Single-Arm Cable Pulldown','Straight-Arm Cable Pulldown'],
-  'Wide-Grip Lat Pulldown':['V-Bar Lat Pulldown','Chin-Up','Pull-Up','Single-Arm Cable Pulldown'],
-  'Barbell Shrug':['Dumbbell Shrug','Cable Shrug','Trap Bar Shrug','Smith Machine Shrug'],
-  'Dumbbell Shrug':['Barbell Shrug','Cable Shrug','Trap Bar Shrug','Smith Machine Shrug'],
+  // ── Chest pressing
+  'Flat Barbell Bench Press':['Incline Barbell Press','Flat Dumbbell Press','Incline Dumbbell Press','Incline Smith Machine Press'],
+  'Incline Dumbbell Press':['Incline Barbell Press','Flat Barbell Bench Press','Flat Dumbbell Press','Incline Smith Machine Press'],
+  // ── Rows
+  'Bent Over Barbell Row':['Chest-Supported Machine Row','Dumbbell Row','Seated Cable Row','T-Bar Row'],
+  // ── Lateral raises
+  'Dumbbell Lateral Raise':['Cable Lateral Raise','Y Raise','Machine Lateral Raise'],
+  'Cable Lateral Raise':['Dumbbell Lateral Raise','Y Raise','Machine Lateral Raise'],
+  // ── Pec fly
+  'Cable Chest Fly':['Dumbbell Pec Fly','Machine Fly','Pec Deck'],
+  // ── Lat pulldown
+  'V-Bar Lat Pulldown':['Pull Up','Close Grip Lat Pulldown','Close Grip Seated Row','Plate-Loaded Lat Pulldown Machine','Crossbody Cable Lat Pulldown'],
+  'Wide-Grip Lat Pulldown':['Pull Up','Close Grip Lat Pulldown','Close Grip Seated Row','Plate-Loaded Lat Pulldown Machine','Crossbody Cable Lat Pulldown'],
+  // ── Triceps
+  'Cable Overhead Tricep Extension':['Cable Pushdown','Cable Kickback','Skullcrusher','Single-Arm Dumbbell Overhead Extension'],
+  'Skullcrusher':['Cable Overhead Tricep Extension','Cable Pushdown','Cable Kickback','Single-Arm Dumbbell Overhead Extension'],
+  'Cable Pushdown (Rope)':['Cable Overhead Tricep Extension','Cable Kickback','Skullcrusher','Single-Arm Dumbbell Overhead Extension'],
+  'Dumbbell Overhead Tricep Extension':['Cable Overhead Tricep Extension','Cable Pushdown','Cable Kickback','Skullcrusher'],
+  // ── Biceps
+  'Barbell Curl':['Cable Curl','Reverse Cable Curl','Hammer Curl','Bayesian Curl'],
+  'Hammer Curl':['Cable Curl','Reverse Cable Curl','Barbell Curl','Bayesian Curl'],
+  // ── OHP (PPL)
+  'Standing Overhead Press':['Seated Dumbbell Shoulder Press','Machine Shoulder Press','Smith Machine Overhead Press','Cable Shoulder Press'],
+  // ── PPL pull extras
+  'Barbell Shrug':['Dumbbell Shrug','Cable Shrug','Smith Machine Shrug'],
+  'Dumbbell Shrug':['Barbell Shrug','Cable Shrug','Smith Machine Shrug'],
   'Face Pull':['Cable Rear Delt Fly','Dumbbell Reverse Fly','Band Face Pull'],
   'Reverse Pec Deck':['Dumbbell Reverse Fly','Cable Rear Delt Fly','Band Pull-Apart'],
-  'Barbell Curl':['Dumbbell Curl','EZ Bar Curl','Preacher Curl','Cable Curl','Machine Curl'],
-  'Hammer Curl':['Rope Cable Curl','Cross-Body Hammer Curl','Machine Hammer Curl'],
-  'Cable Chest Fly':['Machine Chest Fly','Dumbbell Chest Fly (Flat)','Dumbbell Chest Fly (Incline)','Low Cable Crossover'],
+  // ── Lower (all correct per spec)
   'Barbell Back Squat':['Front Squat','Leg Press','Hack Squat Machine','Smith Machine Squat'],
   'Hack Squat Machine':['Leg Press','Smith Machine Squat','Barbell Front Squat','V-Squat Machine'],
   'Romanian Deadlift':['Smith Machine RDL','Conventional Deadlift','Good Morning','Single-Leg Dumbbell RDL'],
