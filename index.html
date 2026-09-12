@@ -106,17 +106,6 @@ const lowerA={name:'Lower A',exercises:[
   ex('Hip Thrust',2,10,15,'Isolation',10),ex('Leg Extension Machine',3,12,15,'Isolation',10),
   ex('Seated Leg Curl',3,10,12,'Isolation',10),
 ]};
-const upperB={name:'Upper B',exercises:[
-  ex('Incline Dumbbell Press',2,8,12,'Compound',8),ex('Bent Over Barbell Row',2,8,10,'Compound',8),
-  ex('Cable Lateral Raise',4,12,15,'Isolation',10),ex('Wide-Grip Lat Pulldown',3,8,12,'Compound',8),
-  ex('Cable Chest Fly',3,12,15,'Isolation',10),ex('Skullcrusher',2,10,12,'Isolation',10),
-  ex('Hammer Curl',2,10,12,'Isolation',10),
-]};
-const lowerB={name:'Lower B',exercises:[
-  ex('Hack Squat Machine',3,8,12,'Compound',8),ex('Conventional Deadlift',3,6,10,'Compound',8),
-  ex('Cable Donkey Kick',2,12,15,'Isolation',10),ex('Leg Extension Machine',3,12,15,'Isolation',10),
-  ex('Lying Leg Curl Machine',3,10,12,'Isolation',10),
-]};
 
 const PROGS={
   ppl:{id:'ppl',name:'Push / Pull / Legs',short:'PPL',freq:'6x / week',
@@ -125,8 +114,8 @@ const PROGS={
     sessions:[{key:'push',label:'Push 1'},{key:'pull1',label:'Pull 1'},{key:'legs',label:'Legs 1'},{key:'push',label:'Push 2'},{key:'pull2',label:'Pull 2'},{key:'legs',label:'Legs 2'}]},
   ul:{id:'ul',name:'Upper / Lower',short:'U/L',freq:'4x / week',
     desc:'Two upper and two lower sessions per week.',
-    defs:{upperA,lowerA,upperB,lowerB},
-    sessions:[{key:'upperA',label:'Upper A'},{key:'lowerA',label:'Lower A'},{key:'upperB',label:'Upper B'},{key:'lowerB',label:'Lower B'}]},
+    defs:{upperA,lowerA},
+    sessions:[{key:'upperA',label:'Upper'},{key:'lowerA',label:'Lower'}]},
 };
 
 // ── STORAGE ──────────────────────────────────────────────────────────
