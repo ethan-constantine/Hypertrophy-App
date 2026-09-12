@@ -677,7 +677,7 @@ function Nutrition({saved,savedRes,unit,onSaveInputs,onSaveResults}){
   const [res,setRes]=useState(savedRes||null);
   const [errs,setErrs]=useState({});
   const upd=(f,v)=>setN(prev=>({...prev,[f]:v}));
-
+  const updSave=(patch)=>{const next={...n,...patch};setN(next);onSaveInputs(next);};
   const ACTS=[
     {v:'sedentary',t:'Sedentary',d:'Desk job, little exercise'},
     {v:'light',t:'Lightly Active',d:'1–2 sessions/week'},
@@ -685,7 +685,6 @@ function Nutrition({saved,savedRes,unit,onSaveInputs,onSaveResults}){
     {v:'active',t:'Very Active',d:'5–6 sessions/week'},
     {v:'extreme',t:'Extremely Active',d:'Daily training + physical job'},
   ];
-
   function calc(){
     onSaveInputs(n);
     const e={};
@@ -699,8 +698,8 @@ function Nutrition({saved,savedRes,unit,onSaveInputs,onSaveResults}){
     const m=n.gender==='male';
     const bmr=m?(10*kg+6.25*cm-5*age+5):(10*kg+6.25*cm-5*age-161);
     const tdee=bmr*(ACT[n.activity]||1.55);
-    const lbs=kg*2.20462;
-    const pMin=Math.round(lbs*0.73),pTgt=Math.round(lbs*0.82);
+    const lbsW=kg*2.20462;
+    const pMin=Math.round(lbsW*0.73),pTgt=Math.round(lbsW*0.82);
     const fMin=Math.round(m?kg*1.0:kg*0.7),fTgt=Math.round(m?kg*1.2:kg*0.9);
     const mLo=tdee+350,mHi=tdee+500;
     const cHi=Math.round((mHi-fTgt*9-pTgt*4)/4);
@@ -708,81 +707,82 @@ function Nutrition({saved,savedRes,unit,onSaveInputs,onSaveResults}){
     const r={bmr:Math.round(bmr),tdee:Math.round(tdee),mLo:Math.round(mLo),mHi:Math.round(mHi),pMin,pTgt,fMin,fTgt,cLo,cHi,isMale:m};
     setRes(r);onSaveResults(r);
   }
-
-  const Pill=({active,onClick,children})=>(
-    <Btn onClick={onClick} style={{flex:1,height:44,borderRadius:10,background:active?A:'transparent',color:active?'#fff':'#9CA3AF',border:`1px solid ${B}`,fontSize:14,fontWeight:700}}>{children}</Btn>
-  );
-  const NumIn=({field,lbl,style})=>(
-    <div style={{flex:1,...style}}>
-      {lbl&&<div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>{lbl}</div>}
-      <input value={n[field]} onChange={e=>upd(field,e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off"
-        style={{width:'100%',height:44,background:'#0A0A0A',border:`1px solid ${errs[field]?W:B}`,borderRadius:8,color:'#fff',fontSize:15,padding:'0 12px',outline:'none'}}/>
-    </div>
-);
-  const ResCard=({val,lbl,sub,color,highlight})=>(
-    <Card style={{border:highlight?`2px solid ${A}`:`1px solid ${B}`}}>
-      <div style={{fontSize:22,fontWeight:800,color:color||'#fff'}}>{val}</div>
-      <div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',margin:'2px 0 4px'}}>{lbl}</div>
-      <div style={{fontSize:12,color:'#9CA3AF'}}>{sub}</div>
-    </Card>
-  );
-
+  const inp=(hasErr)=>({width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${hasErr?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'});
+  const Pill=({active,onClick,children})=>(<Btn onClick={onClick} style={{flex:1,height:44,borderRadius:10,background:active?A:'transparent',color:active?'#000':'#9CA3AF',border:`1px solid ${B}`,fontSize:14,fontWeight:700}}>{children}</Btn>);
+  const FL=({children})=><div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>{children}</div>;
+  const ResCard=({val,lbl,sub,color,highlight})=>(<Card style={{border:highlight?`2px solid ${A}`:`1px solid ${B}`}}><div style={{fontSize:22,fontWeight:800,color:color||'#fff'}}>{val}</div><div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',margin:'2px 0 4px'}}>{lbl}</div><div style={{fontSize:12,color:'#9CA3AF'}}>{sub}</div></Card>);
   return(
     <div style={{flex:1,overflowY:'auto',padding:'62px 20px 20px'}}>
       <div style={{fontSize:26,fontWeight:800,marginBottom:4}}>Nutrition</div>
       <div style={{fontSize:13,color:'#9CA3AF',marginBottom:16}}>Enter your details for personalised macro targets.</div>
-      <Card style={{marginBottom:12,display:'flex',flexDirection:'column',gap:14}}>
+      <Card style={{marginBottom:12,display:'flex',flexDirection:'column',gap:16}}>
         <div>
           <Label>Gender</Label>
-          <div style={{display:'flex',gap:8}}><Pill active={n.gender==='male'} onClick={()=>{const next={...n,gender:'male'};setN(next);onSaveInputs(next);}}>Male</Pill><Pill active={n.gender==='female'} onClick={()=>{const next={...n,gender:'female'};setN(next);onSaveInputs(next);}}>Female</Pill></div>
+          <div style={{display:'flex',gap:8}}>
+            <Pill active={n.gender==='male'} onClick={()=>updSave({gender:'male'})}>Male</Pill>
+            <Pill active={n.gender==='female'} onClick={()=>updSave({gender:'female'})}>Female</Pill>
+          </div>
         </div>
         <div>
           <Label>Age</Label>
           <div style={{position:'relative'}}>
-              <input value={n.age} onChange={e=>upd('age',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off"
-                style={{width:'100%',height:44,background:'#0A0A0A',border:`1px solid ${errs.age?W:B}`,borderRadius:8,color:'#fff',fontSize:15,padding:'0 52px 0 12px',outline:'none'}}/>
-              <div style={{position:'absolute',right:12,top:0,height:44,display:'flex',alignItems:'center',fontSize:12,color:'#6B7280',fontWeight:600}}>years</div>
-            </div>
+            <input value={n.age} onChange={e=>upd('age',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="e.g. 25" style={{...inp(errs.age),paddingRight:52}}/>
+            <div style={{position:'absolute',right:12,top:0,height:48,display:'flex',alignItems:'center',fontSize:12,color:'#6B7280',fontWeight:600}}>years</div>
+          </div>
           {errs.age&&<div style={{fontSize:12,color:W,marginTop:4}}>{errs.age}</div>}
         </div>
         <div>
           <Label>Height</Label>
-          <div style={{marginBottom:8}}>
-            <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>cm</div>
-            <input value={n.cm} onChange={e=>upd('cm',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="e.g. 178"
-              style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.h?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
+          <div style={{marginBottom:8}}><FL>cm</FL>
+            <input value={n.cm} onChange={e=>upd('cm',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="e.g. 178" style={inp(errs.h)}/>
           </div>
           <div style={{fontSize:11,color:'#6B7280',textAlign:'center',fontWeight:600,marginBottom:8}}>— or —</div>
           <div style={{display:'flex',gap:10}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>ft</div>
-              <input value={n.ft} onChange={e=>upd('ft',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="5"
-                style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.h?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
-            </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>in</div>
-              <input value={n.inch} onChange={e=>upd('inch',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="10"
-                style={{width:'100%',height:48,background:'#0A0A0A',border:`1px solid ${errs.h?W:B}`,borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'}}/>
-            </div>
+            <div style={{flex:1}}><FL>ft</FL><input value={n.ft} onChange={e=>upd('ft',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="5" style={inp(errs.h)}/></div>
+            <div style={{flex:1}}><FL>in</FL><input value={n.inch} onChange={e=>upd('inch',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="10" style={inp(errs.h)}/></div>
           </div>
-          {errs.h&&<div style={{fontSize:12,color:W,marginTop:8}}>{errs.h}</div>}
+          {errs.h&&<div style={{fontSize:12,color:W,marginTop:6}}>{errs.h}</div>}
         </div>
-        <Btn onClick={calc} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:16,fontWeight:700}}>Calculate</Btn>
+        <div>
+          <Label>Body Weight</Label>
+          <div style={{display:'flex',gap:10,alignItems:'flex-end'}}>
+            <div style={{flex:1}}><FL>kg</FL><input value={n.kg} onChange={e=>upd('kg',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="e.g. 80" style={inp(errs.w)}/></div>
+            <div style={{paddingBottom:14,color:'#6B7280',fontSize:12,fontWeight:600,flexShrink:0}}>or</div>
+            <div style={{flex:1}}><FL>lbs</FL><input value={n.lbs} onChange={e=>upd('lbs',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="e.g. 176" style={inp(errs.w)}/></div>
+          </div>
+          {errs.w&&<div style={{fontSize:12,color:W,marginTop:6}}>{errs.w}</div>}
+        </div>
+        <div>
+          <Label>Activity Level</Label>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {ACTS.map(a=>(
+              <div key={a.v} onClick={()=>updSave({activity:a.v})} style={{padding:'10px 12px',borderRadius:10,background:n.activity===a.v?'rgba(245,158,11,0.12)':'#1E1E1E',border:`1px solid ${n.activity===a.v?A:B}`,cursor:'pointer'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                  <div style={{fontSize:14,fontWeight:700,color:n.activity===a.v?'#fff':'#E5E7EB'}}>{a.t}</div>
+                  {a.rec&&<div style={{fontSize:9,fontWeight:700,color:G,background:'rgba(5,150,105,0.15)',borderRadius:5,padding:'2px 6px',whiteSpace:'nowrap'}}>RECOMMENDED</div>}
+                </div>
+                <div style={{fontSize:12,color:'#6B7280',marginTop:2}}>{a.d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Btn onClick={calc} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,#B45309,${A})`,color:'#000',fontSize:16,fontWeight:800}}>Calculate</Btn>
       </Card>
       {res&&(
         <div style={{display:'flex',flexDirection:'column',gap:10,animation:'fadeIn 0.35s ease'}}>
           <ResCard val={`${fmt(res.bmr)} kcal`} lbl="BMR" sub="Base metabolic rate at rest"/>
           <ResCard val={`${fmt(res.tdee)} kcal`} lbl="TDEE" sub="Total daily calories to maintain weight"/>
-          <ResCard val={`${fmt(res.mLo)} – ${fmt(res.mHi)} kcal`} lbl="Muscle Building" sub="TDEE + 350–500 kcal surplus" highlight color={A}/>
-          <ResCard val={`${res.pMin}g – ${res.pTgt}g`} lbl="Protein" sub="0.7–0.8g per lb bodyweight" color={W}/>
+          <ResCard val={`${fmt(res.mLo)} – ${fmt(res.mHi)} kcal`} lbl="Muscle Building Target" sub="TDEE + 350–500 kcal surplus" highlight color={A}/>
+          <ResCard val={`${res.pMin}g – ${res.pTgt}g`} lbl="Protein" sub="0.7–0.8g per lb bodyweight" color="#F97316"/>
           <ResCard val={`${res.fMin}g – ${res.fTgt}g (${res.isMale?'1.0–1.2':'0.7–0.9'}g/kg)`} lbl="Fat" sub="Optimised for hormone health" color={res.isMale?A:'#60A5FA'}/>
           <ResCard val={`${res.cLo}g – ${res.cHi}g`} lbl="Carbohydrates" sub="Remaining calories after protein and fat" color={G}/>
-          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.5,padding:'4px 0 8px'}}>These are estimates based on population averages. Individual needs vary.</div>
+          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.5,padding:'4px 0 12px'}}>These are estimates based on population averages. Individual needs vary.</div>
         </div>
       )}
     </div>
   );
 }
+
 
 function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose}){
   const [n,setN]=useState(name);
