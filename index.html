@@ -251,7 +251,7 @@ function Home({name,planId,hist,streak,onStart,onSettings}){
   const totalSets=sess.exercises.reduce((a,e)=>a+e.sets,0);
   const estMin=Math.round((totalSets*3.2+sess.exercises.length*1.2)/5)*5;
   return(
-    <div style={{flex:1,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
+    <div style={{position:'absolute',inset:0,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
       <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20}}>
         <div>
           <div style={{fontSize:12,fontWeight:700,color:'#6B7280',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>Next Up</div>
@@ -299,7 +299,7 @@ function Programmes({planId,onStart}){
   const [view,setView]=useState(planId);
   const prog=PROGS[view];
   return(
-    <div style={{flex:1,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
+    <div style={{position:'absolute',inset:0,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
       <div style={{fontSize:26,fontWeight:800,marginBottom:16}}>Programmes</div>
       <div style={{display:'flex',background:S,border:`1px solid ${B}`,borderRadius:12,padding:4,marginBottom:16}}>
         {Object.values(PROGS).map(p=>(
@@ -330,7 +330,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
   const swapKey=(i)=>`${planId}_${sess.label}_${i}`;
   const getName=(e,i)=>(swaps&&swaps[swapKey(i)])||e.name;
   return(
-    <div style={{flex:1,display:'flex',flexDirection:'column',background:'#0A0A0A',paddingTop:60}}>
+    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',background:'#0A0A0A',paddingTop:60}}>
       <div style={{padding:'0 20px 8px',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         <Btn onClick={onBack} style={{width:36,height:36,borderRadius:10,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:18}}>‹</Btn>
         <div style={{fontSize:12,color:'#9CA3AF',fontWeight:600}}>{PROGS[planId].name}</div>
@@ -500,7 +500,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
     borderRadius:8,color:'#fff',fontSize:14,textAlign:'center',outline:'none'};
 
   return(
-    <div style={{flex:1,display:'flex',flexDirection:'column',background:'#0A0A0A',paddingTop:52,minHeight:0}}
+    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',background:'#0A0A0A',paddingTop:52}}
       onTouchStart={e=>{touchX.current=e.touches[0].clientX;}}
       onTouchEnd={e=>{if(touchX.current===null)return;
         const dx=e.changedTouches[0].clientX-touchX.current;touchX.current=null;
@@ -671,7 +671,7 @@ function WorkoutComplete({entry,unit,prs,duration,onHome}){
   const vol=kg2d(entry.vol,unit);
   const sets=entry.exercises.reduce((a,e)=>a+e.sets.length,0);
   return(
-    <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
       padding:'40px 24px',textAlign:'center',background:'#0A0A0A'}}>
       <div style={{fontSize:60,marginBottom:8}}>🏆</div>
       <div style={{fontSize:26,fontWeight:800,marginBottom:4}}>Session Complete!</div>
@@ -706,7 +706,7 @@ function WorkoutComplete({entry,unit,prs,duration,onHome}){
 function Progress({hist,unit}){
   const [open,setOpen]=useState(null);
   return(
-    <div style={{flex:1,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
+    <div style={{position:'absolute',inset:0,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
       <div style={{fontSize:26,fontWeight:800,marginBottom:16}}>Progress</div>
       {!hist.length&&<div style={{textAlign:'center',padding:'60px 0',color:'#6B7280',fontSize:14}}>No sessions yet. Finish a workout to see it here.</div>}
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -796,7 +796,7 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
     </Card>
   );
   return(
-    <div style={{flex:1,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
+    <div style={{position:'absolute',inset:0,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
       <div style={{fontSize:24,fontWeight:800,marginBottom:4}}>Nutrition</div>
       <div style={{fontSize:13,color:'#9CA3AF',marginBottom:16}}>Get your personalised macro targets.</div>
       <Card style={{marginBottom:12,display:'flex',flexDirection:'column',gap:14}}>
@@ -896,7 +896,7 @@ function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose}){
       color:a?'#000':'#9CA3AF',border:`1px solid ${B}`,fontSize:14,fontWeight:700}}>{ch}</Btn>
   );
   return(
-    <div style={{flex:1,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
+    <div style={{position:'absolute',inset:0,overflowY:'auto',padding:'60px 20px 20px',background:'#0A0A0A'}}>
       <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
         <Btn onClick={onClose} style={{width:36,height:36,borderRadius:10,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:18}}>‹</Btn>
         <div style={{fontSize:22,fontWeight:800}}>Settings</div>
@@ -1074,7 +1074,7 @@ function App(){
 
   return(
     <div style={{position:'fixed',inset:0,display:'flex',flexDirection:'column',background:'#0A0A0A'}}>
-      <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
+      <div style={{flex:1,position:'relative',overflow:'hidden'}}>
         {screen==='home'&&(
           <Home name={name} planId={planId} hist={hist} streak={streak}
             onStart={sess=>startSess(sess,planId)}
