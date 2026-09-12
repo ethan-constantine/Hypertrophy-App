@@ -30,7 +30,7 @@ input,textarea{outline:none;-webkit-appearance:none;border-radius:0}
 const {useState,useEffect,useRef,useCallback}=React;
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────
-const A='#2563EB',G='#059669',W='#D97706',S='#161616',B='#2A2A2A';
+const A=A,G='#059669',W='#D97706',S='#161616',B='#2A2A2A';
 
 const ALT_MAP={
   // ── Chest pressing
@@ -276,7 +276,7 @@ function Onboarding({onDone}){
         </>}
       </div>
 
-      <Btn onClick={next} style={{width:'100%',height:56,borderRadius:12,background:`linear-gradient(135deg,${A},#1D4ED8)`,color:'#fff',fontSize:17,fontWeight:700,marginTop:20}}>
+      <Btn onClick={next} style={{width:'100%',height:56,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:17,fontWeight:700,marginTop:20}}>
         {step===1?"Let's Go":step===4?'Get Started':'Next'}
       </Btn>
     </div>
@@ -322,7 +322,7 @@ function Home({userName,planId,hist,streak,onSession,onTabChange,onSettings}){
       <Card style={{marginBottom:24}}>
         <div style={{fontSize:18,fontWeight:700,marginBottom:4}}>{active}</div>
         <div style={{fontSize:13,color:'#9CA3AF',marginBottom:14}}>{stats.exercises} exercises · {stats.sets} sets · ~{stats.dur} min</div>
-        <Btn onClick={()=>onSession(sess)} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,${A},#1D4ED8)`,color:'#fff',fontSize:16,fontWeight:700}}>Start Session</Btn>
+        <Btn onClick={()=>onSession(sess)} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:16,fontWeight:700}}>Start Session</Btn>
       </Card>
 
       {/* Session strip */}
@@ -419,7 +419,7 @@ function SessionOverview({planId,sess,hist,unit,onStart,onBack}){
         })}
       </div>
       <div style={{padding:'12px 20px 20px',borderTop:`1px solid ${B}`}}>
-        <Btn onClick={()=>onStart(overrides)} style={{width:'100%',height:56,borderRadius:12,background:`linear-gradient(135deg,${A},#1D4ED8)`,color:'#fff',fontSize:17,fontWeight:700}}>Start Workout</Btn>
+        <Btn onClick={()=>onStart(overrides)} style={{width:'100%',height:56,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:17,fontWeight:700}}>Start Workout</Btn>
       </div>
 
       {/* Swap sheet */}
@@ -457,7 +457,9 @@ function ActiveWorkout({planId,sess,overrides,hist,unit,onFinish,onExit}){
       atb:allTimeBest(hist,name),
       lastNotes:lastNotes(hist,sess.label,name),
       notes:'',
-      sets:Array.from({length:e.sets},()=>({kg:'',reps:'',rpe:'',done:false}))};
+      sets:Array.from({length:e.sets},(_,si)=>({
+        kg: prevBest(hist,sess.label,name)!=null ? String(toDisp(prevBest(hist,sess.label,name),unit)) : '',
+        reps:'',rpe:'',done:false}))};
   }));
   const [overloadIdx,setOverloadIdx]=useState(null);
   const [overloadDismissed,setOverloadDismissed]=useState(false);
@@ -499,12 +501,20 @@ function ActiveWorkout({planId,sess,overrides,hist,unit,onFinish,onExit}){
 
   function finish(){
     let vol=0;
+    const prs=[];
     const exData=exercises.map(e=>{
       const done=e.sets.filter(s=>s.done&&s.kg!==''&&s.reps!=='');
       done.forEach(s=>{vol+=(parseFloat(s.kg)||0)*(parseFloat(s.reps)||0);});
+      // Collect PRs (sets where weight exceeded previous all-time best)
+      done.forEach(s=>{
+        const kg=parseFloat(s.kg)||0;
+        if(kg>0&&(e.atb===null||kg>e.atb)){
+          if(!prs.find(p=>p.name===e.name)){prs.push({name:e.name,weight:toDisp(kg,unit)});}
+        }
+      });
       return{name:e.name,rMax:e.rMax,notes:e.notes,sets:done.map(s=>({kg:parseFloat(s.kg)||0,reps:parseFloat(s.reps)||0,rpe:s.rpe}))};
     }).filter(e=>e.sets.length||e.notes);
-    onFinish({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:exData});
+    onFinish({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:exData},prs);
   }
 
   const pct=Math.round(((exIdx+1)/exercises.length)*100);
@@ -615,7 +625,7 @@ function ActiveWorkout({planId,sess,overrides,hist,unit,onFinish,onExit}){
         {exIdx>0&&<Btn onClick={prevEx} style={{width:52,height:52,borderRadius:12,background:'#1E1E1E',border:`1px solid ${B}`,color:'#fff',fontSize:18}}>‹</Btn>}
         {isLast
           ?<Btn onClick={finish} style={{flex:1,height:52,borderRadius:12,background:G,color:'#fff',fontSize:16,fontWeight:700}}>Finish Workout</Btn>
-          :<Btn onClick={nextEx} style={{flex:1,height:52,borderRadius:12,background:`linear-gradient(135deg,${A},#1D4ED8)`,color:'#fff',fontSize:16,fontWeight:700}}>Next Exercise</Btn>}
+          :<Btn onClick={nextEx} style={{flex:1,height:52,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:16,fontWeight:700}}>Next Exercise</Btn>}
       </div>
 
       {/* Swap sheet */}
@@ -788,7 +798,7 @@ function Nutrition({saved,savedRes,unit,onSaveInputs,onSaveResults}){
             ))}
           </div>
         </div>
-        <Btn onClick={calc} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,${A},#1D4ED8)`,color:'#fff',fontSize:16,fontWeight:700}}>Calculate</Btn>
+        <Btn onClick={calc} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:16,fontWeight:700}}>Calculate</Btn>
       </Card>
       {res&&(
         <div style={{display:'flex',flexDirection:'column',gap:10,animation:'fadeIn 0.35s ease'}}>
@@ -888,6 +898,47 @@ function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose}){
   );
 }
 
+// ── WORKOUT COMPLETE ────────────────────────────────────────────────
+function WorkoutComplete({entry,unit,prs,duration,onDone}){
+  const vol=toDisp(entry.vol,unit);
+  const sets=entry.exercises.reduce((s,e)=>s+e.sets.length,0);
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',textAlign:'center',background:'#0A0A0A'}}>
+      <div style={{fontSize:64,marginBottom:8}}>🏆</div>
+      <div style={{fontSize:28,fontWeight:800,marginBottom:6}}>Session Complete!</div>
+      <div style={{fontSize:15,color:'#9CA3AF',marginBottom:32}}>{entry.label}</div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,width:'100%',marginBottom:24}}>
+        {[
+          {label:'Total Volume',value:`${vol} ${unit}`,icon:'📦'},
+          {label:'Sets Completed',value:String(sets),icon:'✅'},
+          {label:'Exercises',value:String(entry.exercises.length),icon:'💪'},
+          {label:'Duration',value:`${duration} min`,icon:'⏱️'},
+        ].map((c,i)=>(
+          <div key={i} style={{background:'#161616',border:'1px solid #2A2A2A',borderRadius:14,padding:'16px 12px'}}>
+            <div style={{fontSize:22,marginBottom:6}}>{c.icon}</div>
+            <div style={{fontSize:20,fontWeight:800,color:'#F59E0B'}}>{c.value}</div>
+            <div style={{fontSize:11,color:'#6B7280',fontWeight:600,marginTop:2}}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {prs.length>0&&(
+        <div style={{width:'100%',background:'linear-gradient(135deg,#92400E,#B45309)',borderRadius:14,padding:'14px 18px',marginBottom:24,textAlign:'left'}}>
+          <div style={{fontSize:13,fontWeight:800,color:'#FEF3C7',marginBottom:8}}>🏆 Personal Records</div>
+          {prs.map((p,i)=>(
+            <div key={i} style={{fontSize:13,color:'#FEF3C7',lineHeight:1.8}}>{p.name} — {p.weight}{unit}</div>
+          ))}
+        </div>
+      )}
+
+      <button onClick={onDone} style={{width:'100%',height:56,borderRadius:14,background:'linear-gradient(135deg,#B45309,#F59E0B)',border:'none',color:'#000',fontSize:17,fontWeight:800,cursor:'pointer',marginTop:8}}>
+        Back to Home
+      </button>
+    </div>
+  );
+}
+
 // ── MAIN APP ──────────────────────────────────────────────────────────
 function App(){
   const [ready,setReady]=useState(false);
@@ -903,6 +954,8 @@ function App(){
   const [viewSess,setViewSess]=useState(null); // {planId,sess}
   const [workoutData,setWorkoutData]=useState(null); // {planId,sess,overrides}
   const [nutrInputs,setNutrInputs]=useState(null);
+  const [completeData,setCompleteData]=useState(null);
+  const [workoutStart,setWorkoutStart]=useState(null);
   const [nutrRes,setNutrRes]=useState(null);
   const [milestone,setMilestone]=useState(null);
 
@@ -926,10 +979,10 @@ function App(){
   }
 
   function startSession(planId,sess,overrides){
-    setWorkoutData({planId,sess,overrides});setScreen('workout');
+    setWorkoutData({planId,sess,overrides});setScreen('workout');setWorkoutStart(Date.now());
   }
 
-  function finishWorkout(entry){
+  function finishWorkout(entry,prs){
     const newHist=[entry,...hist];
     setHist(newHist);save(K.hist,newHist);
     // Streak
@@ -946,7 +999,9 @@ function App(){
     // Milestone
     const MILE=[7,14,30];
     if(MILE.includes(cur)&&!cel.includes(cur)){const nc=[...cel,cur];setCel(nc);save(K.cel,nc);setMilestone(cur);}
-    setScreen('progress');setActiveTab('progress');setWorkoutData(null);
+    const dur=workoutStart?Math.round((Date.now()-workoutStart)/60000):0;
+    setCompleteData({entry,prs:prs||[],duration:dur});
+    setScreen('complete');setWorkoutData(null);
   }
 
   function savePrefs({name,unit:u,planId:p}){
@@ -981,7 +1036,7 @@ function App(){
 
   if(!obDone)return<Onboarding onDone={finishOnboarding}/>;
 
-  const showTabBar=!['session','workout'].includes(screen);
+  const showTabBar=!['session','workout','complete'].includes(screen);
 
   return(
     <div style={{display:'flex',flexDirection:'column',minHeight:'100dvh'}}>
@@ -1013,7 +1068,7 @@ function App(){
             <div style={{fontSize:64,marginBottom:16}}>{milestone>=30?'🏆':milestone>=14?'💪':'🔥'}</div>
             <div style={{fontSize:24,fontWeight:800,marginBottom:8}}>{milestone}-Day Streak!</div>
             <div style={{fontSize:14,color:'#9CA3AF',marginBottom:28}}>You're building serious consistency. Keep it up.</div>
-            <Btn onClick={()=>setMilestone(null)} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,${A},#1D4ED8)`,color:'#fff',fontSize:16,fontWeight:700}}>Nice!</Btn>
+            <Btn onClick={()=>setMilestone(null)} style={{width:'100%',height:52,borderRadius:12,background:`linear-gradient(135deg,#D97706,${A})`,color:'#fff',fontSize:16,fontWeight:700}}>Nice!</Btn>
           </div>
         </>
       )}
