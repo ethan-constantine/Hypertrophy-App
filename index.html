@@ -631,10 +631,13 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
     const bmr=m?(10*kg+6.25*cm-5*age+5):(10*kg+6.25*cm-5*age-161);
     const tdee=bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725,extreme:1.9}[n.activity]||1.55);
     const lbsW=kg*2.20462;
-    // Bulk: Iraki et al. (2019) off-season surplus guidance — TDEE + 350-500 kcal
+    // Bulk: Iraki et al. (2019) Sports 7:154 — off-season guidance is expressed as
+    // a percentage of maintenance (10-20% above TDEE for novice/intermediate lifters,
+    // 5-10% for advanced), which scales fairly with individual size rather than
+    // handing everyone the same fixed kcal number.
     const pMin=Math.round(lbsW*0.73),pTgt=Math.round(lbsW*0.82);
     const fMin=Math.round(m?kg:kg*0.7),fTgt=Math.round(m?kg*1.2:kg*0.9);
-    const mLo=tdee+350,mHi=tdee+500;
+    const mLo=tdee*1.10,mHi=tdee*1.20;
     // Cut: Trexler, Smith-Ryan & Norton (2014) J Int Soc Sports Nutr 11:7 —
     // percentage-based deficits scale fairly with individual maintenance calories and,
     // combined with a moderate size, better preserve lean mass and limit metabolic adaptation
@@ -708,11 +711,11 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
 
           {isBulk?<>
             <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'14px 0 8px'}}>Muscle Building</div>
-            <RC val={fmt(res.mLo)+' \u2013 '+fmt(res.mHi)+' kcal'} lbl="Calorie Target" sub="TDEE + 350-500 kcal surplus" hi color={A}/>
+            <RC val={fmt(res.mLo)+' \u2013 '+fmt(res.mHi)+' kcal'} lbl="Calorie Target" sub="10-20% above TDEE" hi color={A}/>
             <RC val={res.pMin+'g \u2013 '+res.pTgt+'g'} lbl="Protein" sub="0.7-0.8g per lb bodyweight" color="#F97316"/>
             <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Hormone health optimised" color={res.m?A:'#818CF8'}/>
             <RC val={res.cLo+'g \u2013 '+res.cHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
-            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Surplus size follows off-season guidance for natural lifters (Iraki et al., 2019, <em>Sports</em> 7:154).</div>
+            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Surplus expressed as a percentage of maintenance (rather than a fixed kcal number) so it scales fairly regardless of body size, following off-season guidance for natural lifters — Iraki, Fitschen, Espinar &amp; Helms (2019), <em>Sports</em> 7:154.</div>
           </>:<>
             <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'14px 0 8px'}}>Fat Loss (Cutting)</div>
             <RC val={fmt(res.cutLo)+' \u2013 '+fmt(res.cutHi)+' kcal'} lbl="Calorie Target" sub="10-20% below TDEE" hi color={A}/>
