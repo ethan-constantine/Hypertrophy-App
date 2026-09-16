@@ -614,7 +614,7 @@ function Progress({hist,unit}){
 
 // ── NUTRITION ─────────────────────────────────────────────────────────────────
 function Nutrition({saved,savedRes,onSave,onSaveRes}){
-  const DEF={gender:'male',age:'',cm:'',ft:'',inch:'',kg:'',lbs:'',activity:'moderate'};
+  const DEF={gender:'male',age:'',cm:'',ft:'',inch:'',kg:'',lbs:'',activity:'moderate',goal:'bulk'};
   const [n,setN]=useState(saved||DEF);
   const [res,setRes]=useState(savedRes||null);
   const [errs,setErrs]=useState({});
@@ -631,14 +631,17 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
     const bmr=m?(10*kg+6.25*cm-5*age+5):(10*kg+6.25*cm-5*age-161);
     const tdee=bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725,extreme:1.9}[n.activity]||1.55);
     const lbsW=kg*2.20462;
+    // Bulk: Iraki et al. (2019) off-season surplus guidance — TDEE + 350-500 kcal
     const pMin=Math.round(lbsW*0.73),pTgt=Math.round(lbsW*0.82);
     const fMin=Math.round(m?kg:kg*0.7),fTgt=Math.round(m?kg*1.2:kg*0.9);
     const mLo=tdee+350,mHi=tdee+500;
-    // Cutting: Helms, Aragon & Fitschen (2014) J Int Soc Sports Nutr 11:20 —
-    // 500-750 kcal/day deficit targets ~0.5-1% bodyweight loss/week while preserving muscle.
-    // Protein needs rise during a cut: 2.3-3.1 g/kg lean mass, approximated here as
-    // ~0.9-1.0 g/lb total bodyweight when lean mass isn't measured directly.
-    const cutLo=tdee-750,cutHi=tdee-500;
+    // Cut: Trexler, Smith-Ryan & Norton (2014) J Int Soc Sports Nutr 11:7 —
+    // percentage-based deficits scale fairly with individual maintenance calories and,
+    // combined with a moderate size, better preserve lean mass and limit metabolic adaptation
+    // than a large fixed kcal cut. 10-20% below TDEE is a widely used evidence-aligned range.
+    // Protein needs rise during a cut (Helms, Aragon & Fitschen 2014): 2.3-3.1 g/kg lean mass,
+    // approximated as ~0.9-1.0 g/lb total bodyweight when lean mass isn't measured directly.
+    const cutLo=tdee*0.80,cutHi=tdee*0.90;
     const pMinCut=Math.round(lbsW*0.9),pTgtCut=Math.round(lbsW*1.0);
     const cutCLo=Math.max(0,Math.round((cutLo-fTgt*9-pTgtCut*4)/4));
     const cutCHi=Math.max(0,Math.round((cutHi-fMin*9-pMinCut*4)/4));
@@ -650,12 +653,16 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
   const iSty=(err)=>({width:'100%',height:48,background:'#0A0A0A',border:'1px solid '+(err?R:B),borderRadius:8,color:'#fff',fontSize:16,padding:'0 12px',outline:'none'});
   const FL=({c})=><div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:4}}>{c}</div>;
   const RC=({val,lbl,sub,color,hi})=><Card style={{border:hi?'2px solid '+A:'1px solid '+B,marginBottom:10}} ch={<><div style={{fontSize:18,fontWeight:800,color:color||'#fff'}}>{val}</div><div style={{fontSize:10,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',margin:'2px 0 2px'}}>{lbl}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{sub}</div></>}/>;
+  const isBulk=n.goal!=='cut';
   return(
     <FS scroll>
       <div style={{padding:'60px 20px 20px'}}>
         <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Nutrition</div>
         <div style={{fontSize:13,color:'#9CA3AF',marginBottom:12}}>Get your personalised macro targets.</div>
         <Card style={{marginBottom:12,display:'flex',flexDirection:'column',gap:14}} ch={<>
+          <div><div style={{fontSize:12,color:'#9CA3AF',fontWeight:600,marginBottom:7}}>GOAL</div>
+            <div style={{display:'flex',gap:8}}><Pill a={isBulk} on={()=>updS({goal:'bulk'})} l="Bulk"/><Pill a={!isBulk} on={()=>updS({goal:'cut'})} l="Cut"/></div>
+          </div>
           <div><div style={{fontSize:12,color:'#9CA3AF',fontWeight:600,marginBottom:7}}>GENDER</div>
             <div style={{display:'flex',gap:8}}><Pill a={n.gender==='male'} on={()=>updS({gender:'male'})} l="Male"/><Pill a={n.gender==='female'} on={()=>updS({gender:'female'})} l="Female"/></div>
           </div>
@@ -699,26 +706,27 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
           <RC val={fmt(res.bmr)+' kcal'} lbl="BMR" sub="Base metabolic rate at rest"/>
           <RC val={fmt(res.tdee)+' kcal'} lbl="TDEE" sub="Total daily calories to maintain weight"/>
 
-          <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'14px 0 8px'}}>Muscle Building</div>
-          <RC val={fmt(res.mLo)+' \u2013 '+fmt(res.mHi)+' kcal'} lbl="Calorie Target" sub="TDEE + 350-500 kcal surplus" hi color={A}/>
-          <RC val={res.pMin+'g \u2013 '+res.pTgt+'g'} lbl="Protein" sub="0.7-0.8g per lb bodyweight" color="#F97316"/>
-          <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Hormone health optimised" color={res.m?A:'#818CF8'}/>
-          <RC val={res.cLo+'g \u2013 '+res.cHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
-
-          <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'18px 0 8px'}}>Fat Loss (Cutting)</div>
-          <RC val={fmt(res.cutLo)+' \u2013 '+fmt(res.cutHi)+' kcal'} lbl="Calorie Target" sub="TDEE - 500 to -750 kcal deficit" hi color={A}/>
-          <RC val={res.pMinCut+'g \u2013 '+res.pTgtCut+'g'} lbl="Protein" sub="Higher than a surplus phase to protect muscle" color="#F97316"/>
-          <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Same range as muscle building" color={res.m?A:'#818CF8'}/>
-          <RC val={res.cutCLo+'g \u2013 '+res.cutCHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
-
-          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Cutting targets follow Helms, Aragon &amp; Fitschen (2014), <em>J Int Soc Sports Nutr</em> 11:20 — a 500&ndash;750 kcal/day deficit for approximately 0.5&ndash;1% bodyweight loss per week while preserving muscle, with protein raised to help offset the increased risk of muscle loss during restriction.</div>
+          {isBulk?<>
+            <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'14px 0 8px'}}>Muscle Building</div>
+            <RC val={fmt(res.mLo)+' \u2013 '+fmt(res.mHi)+' kcal'} lbl="Calorie Target" sub="TDEE + 350-500 kcal surplus" hi color={A}/>
+            <RC val={res.pMin+'g \u2013 '+res.pTgt+'g'} lbl="Protein" sub="0.7-0.8g per lb bodyweight" color="#F97316"/>
+            <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Hormone health optimised" color={res.m?A:'#818CF8'}/>
+            <RC val={res.cLo+'g \u2013 '+res.cHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
+            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Surplus size follows off-season guidance for natural lifters (Iraki et al., 2019, <em>Sports</em> 7:154).</div>
+          </>:<>
+            <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'14px 0 8px'}}>Fat Loss (Cutting)</div>
+            <RC val={fmt(res.cutLo)+' \u2013 '+fmt(res.cutHi)+' kcal'} lbl="Calorie Target" sub="10-20% below TDEE" hi color={A}/>
+            <RC val={res.pMinCut+'g \u2013 '+res.pTgtCut+'g'} lbl="Protein" sub="Higher than a surplus phase to protect muscle" color="#F97316"/>
+            <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Same range as muscle building" color={res.m?A:'#818CF8'}/>
+            <RC val={res.cutCLo+'g \u2013 '+res.cutCHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
+            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Deficit expressed as a percentage of maintenance (rather than a fixed kcal number) so it scales fairly regardless of body size — a smaller person isn't handed the same absolute cut as a much larger one. Basis: Trexler, Smith-Ryan &amp; Norton (2014), <em>J Int Soc Sports Nutr</em> 11:7, on moderate deficits preserving lean mass and limiting metabolic adaptation; protein raised per Helms, Aragon &amp; Fitschen (2014) to offset increased muscle-loss risk during restriction.</div>
+          </>}
         </div>}
       </div>
     </FS>
   );
 }
 
-// ── SETTINGS ──────────────────────────────────────────────────────────────────
 function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose}){
   const [nm,setNm]=useState(name);const [u,setU]=useState(unit);const [p,setP]=useState(planId);
   const [showP,setShowP]=useState(false);const [confirm,setConfirm]=useState(null);
