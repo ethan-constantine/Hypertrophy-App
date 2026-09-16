@@ -82,15 +82,15 @@ const DEF_ST={cur:0,best:0,lastDate:null,total:0,dates:[]};
 // anyone with an active job AND a training habit, or vice versa.
 const JOB_ACTS=[
   {v:'desk',t:'Desk Job',d:'Mostly sitting, minimal daily movement',base:1.20},
-  {v:'onfeet',t:'On My Feet Sometimes',d:'Teaching, retail, light physical work',base:1.30},
-  {v:'active',t:'On My Feet Most of the Day',d:'Trades, nursing, hospitality',base:1.40},
+  {v:'onfeet',t:'On My Feet Sometimes',d:'Teaching, retail, light physical work',base:1.275},
+  {v:'active',t:'On My Feet Most of the Day',d:'Trades, nursing, hospitality',base:1.35},
   {v:'labour',t:'Heavy Physical Labour',d:'Construction, farming, manual work',base:1.50},
 ];
 const TRAIN_FREQS=[
   {v:'0-2',t:'0-2 sessions/week',add:0.00},
-  {v:'3-4',t:'3-4 sessions/week',add:0.15},
-  {v:'5-6',t:'5-6 sessions/week',add:0.30},
-  {v:'7+',t:'7+ sessions/week',add:0.45},
+  {v:'3-4',t:'3-4 sessions/week',add:0.10},
+  {v:'5-6',t:'5-6 sessions/week',add:0.20},
+  {v:'7+',t:'7+ sessions/week',add:0.30},
 ];
 
 function prevBest(hist,label,name){for(const h of hist){if(h.label!==label)continue;const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ws=e.sets.map(s=>s.kg||0).filter(w=>w>0);if(ws.length)return Math.max(...ws);}}return null;}
