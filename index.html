@@ -20,6 +20,7 @@ input,textarea{font-family:inherit;outline:none;-webkit-appearance:none;border:n
 textarea{resize:none}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
 </style>
 </head>
 <body><div id="root"></div>
@@ -313,10 +314,16 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   const tx=useRef(null);
   const prTimer=useRef(null);
   const overloadTimer=useRef(null);
+  const prFadeTimer=useRef(null);
+  const overloadFadeTimer=useRef(null);
+  const [prLeaving,setPrLeaving]=useState(false);
+  const [overloadLeaving,setOverloadLeaving]=useState(false);
   useEffect(()=>()=>{
     if(tmr.current)clearInterval(tmr.current);
     if(prTimer.current)clearTimeout(prTimer.current);
     if(overloadTimer.current)clearTimeout(overloadTimer.current);
+    if(prFadeTimer.current)clearTimeout(prFadeTimer.current);
+    if(overloadFadeTimer.current)clearTimeout(overloadFadeTimer.current);
   },[]);
 
   const cur=exs[ei];
@@ -347,13 +354,19 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
       curR:'',curRpe:''}));
     if(isPR){
       setPr({name:cur.name,kg});
+      setPrLeaving(false);
       if(prTimer.current)clearTimeout(prTimer.current);
-      prTimer.current=setTimeout(()=>setPr(null),4000);
+      if(prFadeTimer.current)clearTimeout(prFadeTimer.current);
+      prFadeTimer.current=setTimeout(()=>setPrLeaving(true),3600);
+      prTimer.current=setTimeout(()=>{setPr(null);setPrLeaving(false);},4000);
     }
     if(reps>=cur.rHi){
       setOverload(true);
+      setOverloadLeaving(false);
       if(overloadTimer.current)clearTimeout(overloadTimer.current);
-      overloadTimer.current=setTimeout(()=>setOverload(false),4000);
+      if(overloadFadeTimer.current)clearTimeout(overloadFadeTimer.current);
+      overloadFadeTimer.current=setTimeout(()=>setOverloadLeaving(true),3600);
+      overloadTimer.current=setTimeout(()=>{setOverload(false);setOverloadLeaving(false);},4000);
     }
     startRest(cur.type==='Compound'?120:60);
   }
@@ -428,13 +441,13 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           </button>
         </div>
         {/* Banners */}
-        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(52,211,153,0.15)',border:'1px solid rgba(52,211,153,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10,animation:'fadeIn 0.25s ease'}}>
+        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(52,211,153,0.15)',border:'1px solid rgba(52,211,153,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10,animation:(prLeaving?'fadeOut 0.4s ease forwards':'fadeIn 0.25s ease'),transition:'opacity 0.4s ease'}}>
           <span>&#127942;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:'#34D399'}}>New PR &mdash; {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
-          <button onClick={()=>{if(prTimer.current)clearTimeout(prTimer.current);setPr(null);}} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
+          <button onClick={()=>{if(prTimer.current)clearTimeout(prTimer.current);if(prFadeTimer.current)clearTimeout(prFadeTimer.current);setPr(null);setPrLeaving(false);}} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
         </div>}
-        {overload&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(16,185,129,0.12)',border:'1px solid rgba(16,185,129,0.3)',borderRadius:8,padding:'8px 12px',marginTop:10,animation:'fadeIn 0.25s ease'}}>
+        {overload&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(16,185,129,0.12)',border:'1px solid rgba(16,185,129,0.3)',borderRadius:8,padding:'8px 12px',marginTop:10,animation:(overloadLeaving?'fadeOut 0.4s ease forwards':'fadeIn 0.25s ease'),transition:'opacity 0.4s ease'}}>
           <span>&#128200;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:A}}>Top of range &mdash; add weight next session</div>
-          <button onClick={()=>{if(overloadTimer.current)clearTimeout(overloadTimer.current);setOverload(false);}} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
+          <button onClick={()=>{if(overloadTimer.current)clearTimeout(overloadTimer.current);if(overloadFadeTimer.current)clearTimeout(overloadFadeTimer.current);setOverload(false);setOverloadLeaving(false);}} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
         </div>}
       </div>
 
