@@ -25,7 +25,7 @@ textarea{resize:none}
 <script type="text/babel">
 const {useState,useEffect,useRef}=React;
 
-const A='#F59E0B',G='#059669',R='#EF4444',S='#161616',B='#2A2A2A';
+const A='#818CF8',G='#10B981',R='#F87171',S='#141414',B='#252525';
 const K={ob:'cf.ob',nm:'cf.nm',ut:'cf.ut',pl:'cf.pl',hi:'cf.hi',st:'cf.st',cl:'cf.cl',nu:'cf.nu',nr:'cf.nr',sw:'cf.sw'};
 const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
@@ -146,7 +146,7 @@ function Onboarding({onDone}){
         </div>}
       </div>
       <Btn onClick={next} ch={step===1?"Let's Go":step===4?'Get Started':'Next'}
-        style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#B45309,'+A+')',color:'#000',fontSize:17,fontWeight:800,marginTop:16}}/>
+        style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#4338CA,'+A+')',color:'#000',fontSize:17,fontWeight:800,marginTop:16}}/>
     </div>
   );
 }
@@ -183,7 +183,7 @@ function Home({planId,hist,streak,onStart,onSettings}){
           <div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{active}</div>
           <div style={{fontSize:12,color:'#9CA3AF',marginBottom:12}}>{sess.exercises.length} exercises &bull; {tot} sets &bull; ~{est} min</div>
           <Btn onClick={()=>onStart(sess)} ch="Start Session"
-            style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#B45309,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
+            style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#4338CA,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
         </>} style={{marginBottom:16}}/>
         <div style={{fontSize:12,fontWeight:700,marginBottom:8}}>All Sessions</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat('+prog.sessions.length+',1fr)',gap:8}}>
@@ -264,7 +264,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
       </div>
       <div style={{padding:'10px 20px 28px',borderTop:'1px solid '+B,flexShrink:0}}>
         <Btn onClick={onBegin} ch="Start Workout"
-          style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#B45309,'+A+')',color:'#000',fontSize:17,fontWeight:800}}/>
+          style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#4338CA,'+A+')',color:'#000',fontSize:17,fontWeight:800}}/>
       </div>
       {swapIdx!==null&&<>
         <div onClick={()=>setSwapIdx(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:40}}/>
@@ -287,18 +287,18 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
 
 // ── ACTIVE WORKOUT ────────────────────────────────────────────────────────────
 function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
-  // Build exercises — initial state
   const skKey=(i)=>planId+'_'+sess.label+'_'+i;
   const buildEx=()=>sess.exercises.map((e,i)=>{
     const name=(swaps&&swaps[skKey(i)])||e.name;
     const pb=prevBest(hist,sess.label,name);
     return{...e,name,base:e.name,ei:i,pb,atb:allBest(hist,name),
       pn:lastNotes(hist,sess.label,name),notes:'',
-      rows:Array.from({length:e.sets},()=>({
-        w:pb!=null?String(toDisp(pb,unit)):'',r:'',rpe:'',done:false}))};
+      logged:[],  // completed sets
+      curW:pb!=null?String(toDisp(pb,unit)):'',
+      curR:'',curRpe:''};
   });
 
-  // All hooks first — no early returns above
+  // All hooks first
   const [exs,setExs]=useState(buildEx);
   const [ei,setEi]=useState(0);
   const [overload,setOverload]=useState(false);
@@ -306,165 +306,241 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   const [showSwap,setShowSwap]=useState(false);
   const [secs,setSecs]=useState(0);
   const [totSecs,setTotSecs]=useState(0);
+  const [showCancel,setShowCancel]=useState(false);
   const tmr=useRef(null);
   const t0=useRef(Date.now());
   const tx=useRef(null);
   useEffect(()=>()=>{if(tmr.current)clearInterval(tmr.current);},[]);
 
   const cur=exs[ei];
-  const isLast=ei===exs.length-1;
+  const setsDone=cur.logged.length;
+  const setsTotal=cur.sets;
+  const allSetsDone=setsDone>=setsTotal;
+  const isLastEx=ei===exs.length-1;
+  const pct=Math.round(((ei)/exs.length)*100 + (setsDone/setsTotal)*(100/exs.length));
 
   function startRest(s){
     if(tmr.current)clearInterval(tmr.current);
     setSecs(s);setTotSecs(s);
     tmr.current=setInterval(()=>setSecs(t=>{if(t<=1){clearInterval(tmr.current);return 0;}return t-1;}),1000);
   }
-  function updRow(ri,f,v){setExs(p=>p.map((e,i)=>i!==ei?e:{...e,rows:e.rows.map((r,j)=>j!==ri?r:{...r,[f]:v})}));}
-  function markDone(ri){
-    const row=cur.rows[ri];const kg=parseFloat(row.w)||0;
+  function stopRest(){if(tmr.current)clearInterval(tmr.current);setSecs(0);setTotSecs(0);}
+
+  function logSet(){
+    const kg=parseFloat(cur.curW)||0;
+    const reps=parseFloat(cur.curR)||0;
+    if(!reps)return; // need at least reps
     const isPR=kg>0&&(cur.atb===null||kg>cur.atb);
-    setExs(p=>p.map((e,i)=>i!==ei?e:{...e,atb:isPR?kg:e.atb,rows:e.rows.map((r,j)=>j!==ri?r:{...r,done:true})}));
+    const newLogged=[...cur.logged,{kg,reps,rpe:cur.curRpe,w:cur.curW,r:cur.curR}];
+    // Pre-fill next set with same weight
+    setExs(p=>p.map((e,i)=>i!==ei?e:{...e,
+      atb:isPR?kg:e.atb,
+      logged:newLogged,
+      curW:cur.curW, // keep same weight for next set
+      curR:'',curRpe:''}));
     if(isPR)setPr({name:cur.name,kg});
-    if(Number(row.r)>=cur.rHi)setOverload(true);
+    if(reps>=cur.rHi)setOverload(true);
     startRest(cur.type==='Compound'?120:60);
   }
+
+  function nextExercise(){
+    if(ei<exs.length-1){setEi(i=>i+1);setOverload(false);setPr(null);stopRest();}
+  }
+
   function doSwap(nm){
     onSaveSwap(skKey(cur.ei),nm);
-    setExs(p=>p.map((e,i)=>{if(i!==ei)return e;const pb=prevBest(hist,sess.label,nm);return{...e,name:nm,pb,atb:allBest(hist,nm),pn:lastNotes(hist,sess.label,nm),rows:e.rows.map(r=>({...r,w:pb!=null?String(toDisp(pb,unit)):r.w}))};}));
+    setExs(p=>p.map((e,i)=>{
+      if(i!==ei)return e;
+      const pb=prevBest(hist,sess.label,nm);
+      return{...e,name:nm,pb,atb:allBest(hist,nm),pn:lastNotes(hist,sess.label,nm),
+        curW:pb!=null?String(toDisp(pb,unit)):e.curW};
+    }));
     setShowSwap(false);
   }
-  function goNext(){setEi(i=>Math.min(i+1,exs.length-1));setOverload(false);setPr(null);}
-  function goPrev(){setEi(i=>Math.max(i-1,0));setOverload(false);setPr(null);}
+
   function finish(){
     let vol=0;const prs=[];
     const data=exs.map(e=>{
-      const done=e.rows.filter(r=>r.done&&r.w&&r.r);
-      done.forEach(r=>{const kg=parseFloat(r.w)||0;vol+=kg*(parseFloat(r.r)||0);if(kg>0&&(e.atb===null||kg>e.atb)&&!prs.find(p=>p.name===e.name))prs.push({name:e.name,weight:toDisp(kg,unit)});});
-      return{name:e.name,rHi:e.rHi,notes:e.notes||'',sets:done.map(r=>({kg:parseFloat(r.w)||0,reps:parseFloat(r.r)||0,rpe:r.rpe}))};
+      e.logged.forEach(s=>{const kg=s.kg||0;vol+=kg*(s.reps||0);
+        if(kg>0&&(e.atb===null||kg>e.atb)&&!prs.find(p=>p.name===e.name))prs.push({name:e.name,weight:toDisp(kg,unit)});});
+      return{name:e.name,rHi:e.rHi,notes:e.notes||'',
+        sets:e.logged.map(s=>({kg:s.kg||0,reps:s.reps||0,rpe:s.rpe}))};
     }).filter(e=>e.sets.length||e.notes);
     onDone({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:data},prs,Math.round((Date.now()-t0.current)/60000));
   }
 
-  const pct=Math.round(((ei+1)/exs.length)*100);
   const lh=hist.find(h=>h.label===sess.label&&h.exercises&&h.exercises.find(x=>x.name===cur.name));
   const lEx=lh&&lh.exercises.find(x=>x.name===cur.name);
-  const iSty={height:40,background:'#111',border:'1px solid #333',borderRadius:6,color:'#fff',fontSize:15,textAlign:'center',outline:'none',width:'100%'};
 
-  // PORTAL: renders directly into document.body — bypasses ALL parent containers
+  // Primary action button label
+  let actionLabel, actionFn, actionStyle;
+  if(allSetsDone && isLastEx){
+    actionLabel='Finish Workout \u2713';
+    actionFn=finish;
+    actionStyle={background:G};
+  } else if(allSetsDone){
+    actionLabel='Next Exercise \u203a';
+    actionFn=nextExercise;
+    actionStyle={background:'linear-gradient(135deg,#4338CA,'+A+')'};
+  } else {
+    actionLabel='Log Set '+(setsDone+1)+' of '+setsTotal;
+    actionFn=logSet;
+    actionStyle={background:'linear-gradient(135deg,#4338CA,'+A+')'};
+  }
+
   const workout=(
-    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#0A0A0A',zIndex:9999,display:'flex',flexDirection:'column'}}
-      onTouchStart={e=>{tx.current=e.touches[0].clientX;}}
-      onTouchEnd={e=>{if(tx.current===null)return;const dx=e.changedTouches[0].clientX-tx.current;tx.current=null;if(dx<-50)goNext();else if(dx>50)goPrev();}}>
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#0A0A0A',zIndex:9999,display:'flex',flexDirection:'column'}}>
 
-      {/* ── Header ── */}
-      <div style={{background:'#111',borderBottom:'1px solid #222',padding:'48px 16px 12px',flexShrink:0}}>
+      {/* Header */}
+      <div style={{background:'#0F0F0F',borderBottom:'1px solid #1E1E1E',padding:'48px 16px 14px',flexShrink:0}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-          <button onClick={onExit} style={{background:'transparent',border:'none',color:'#999',fontSize:22,padding:0,cursor:'pointer'}}>&#10005;</button>
-          <div style={{fontSize:13,fontWeight:700,color:'#999'}}>{ei+1} of {exs.length}</div>
-          <div style={{width:22}}/>
-        </div>
-        <div style={{height:3,background:'#222',borderRadius:2,marginBottom:10}}>
-          <div style={{height:'100%',width:pct+'%',background:A,borderRadius:2,transition:'width 0.3s'}}/>
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:20,fontWeight:800,marginBottom:2}}>{cur.name}</div>
-            <div style={{fontSize:12,color:'#888'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
+          {/* Progress bar */}
+          <div style={{flex:1,height:3,background:'#1E1E1E',borderRadius:2,marginRight:12}}>
+            <div style={{height:'100%',width:pct+'%',background:A,borderRadius:2,transition:'width 0.4s'}}/>
           </div>
-          <button onClick={()=>setShowSwap(true)} style={{background:'#1E1E1E',border:'1px solid #333',borderRadius:8,color:'#999',fontSize:13,padding:'6px 10px',cursor:'pointer'}}>&#8644; Swap</button>
+          <div style={{fontSize:12,fontWeight:700,color:'#555',whiteSpace:'nowrap'}}>{ei+1} / {exs.length}</div>
         </div>
-        {cur.pb!=null&&<div style={{fontSize:12,color:'#888',marginTop:6}}>Previous best: <span style={{color:A,fontWeight:700}}>{toDisp(cur.pb,unit)}{unit}</span></div>}
-        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:G,borderRadius:8,padding:'8px 12px',marginTop:8}}>
-          <span>&#127942;</span><div style={{fontSize:13,fontWeight:800,color:'#fff',flex:1}}>New PR &mdash; {toDisp(pr.kg,unit)}{unit}!</div>
-          <button onClick={()=>setPr(null)} style={{background:'rgba(0,0,0,0.2)',border:'none',borderRadius:4,color:'#fff',fontSize:11,padding:'2px 6px',cursor:'pointer'}}>&#10005;</button>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:A,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{cur.type}</div>
+            <div style={{fontSize:22,fontWeight:800,lineHeight:1.2,marginBottom:4}}>{cur.name}</div>
+            <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
+            {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{toDisp(cur.pb,unit)}{unit}</span></div>}
+          </div>
+          <button onClick={()=>setShowSwap(true)}
+            style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#666',fontSize:12,padding:'7px 10px',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
+            &#8644; Swap
+          </button>
+        </div>
+        {/* Banners */}
+        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(5,150,105,0.15)',border:'1px solid rgba(5,150,105,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10}}>
+          <span>&#127942;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:'#34D399'}}>New PR &mdash; {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
+          <button onClick={()=>setPr(null)} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
         </div>}
-        {overload&&<div style={{display:'flex',alignItems:'center',gap:8,background:A,borderRadius:8,padding:'8px 12px',marginTop:8}}>
-          <span>&#127942;</span><div style={{fontSize:13,fontWeight:800,color:'#000',flex:1}}>Top of range &mdash; increase weight next session</div>
-          <button onClick={()=>setOverload(false)} style={{background:'rgba(0,0,0,0.15)',border:'none',borderRadius:4,color:'#000',fontSize:11,padding:'2px 6px',cursor:'pointer'}}>&#10005;</button>
+        {overload&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(99,102,241,0.12)',border:'1px solid rgba(99,102,241,0.3)',borderRadius:8,padding:'8px 12px',marginTop:10}}>
+          <span>&#128200;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:A}}>Top of range &mdash; add weight next session</div>
+          <button onClick={()=>setOverload(false)} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
         </div>}
       </div>
 
-      {/* ── Sets table ── */}
-      <div style={{flex:1,overflowY:'scroll',WebkitOverflowScrolling:'touch',padding:'0 16px 8px'}}>
-        {/* Last session reference */}
-        {lEx&&lEx.sets&&lEx.sets.length>0&&<div style={{background:'#111',borderRadius:8,padding:'8px 12px',margin:'10px 0 6px'}}>
-          <div style={{fontSize:10,color:'#666',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>Last Session</div>
-          {lEx.sets.map((s,i)=><div key={i} style={{fontSize:12,color:'#888',lineHeight:1.7}}>Set {i+1}: {toDisp(s.kg,unit)}{unit} &times; {s.reps} reps</div>)}
+      {/* Body */}
+      <div style={{flex:1,overflowY:'scroll',WebkitOverflowScrolling:'touch',padding:'16px 16px 8px'}}>
+        {/* Completed sets log */}
+        {cur.logged.length>0&&<div style={{marginBottom:16}}>
+          <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Completed</div>
+          {cur.logged.map((s,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'rgba(5,150,105,0.08)',border:'1px solid rgba(5,150,105,0.2)',borderRadius:8,marginBottom:6}}>
+            <span style={{fontSize:16,color:G}}>&#10003;</span>
+            <div style={{flex:1,fontSize:14,color:'#888'}}>Set {i+1}</div>
+            <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>
+            <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.r} reps</div>
+            {s.rpe&&<div style={{fontSize:12,color:'#555'}}>RPE {s.rpe}</div>}
+          </div>)}
         </div>}
 
-        {/* Column headers */}
-        <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 44px',gap:6,padding:'10px 0 6px',fontSize:10,color:'#666',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>
-          <div>Set</div><div>{unit==='kg'?'Kg':'Lbs'}</div><div>Reps</div><div>RPE</div><div/>
-        </div>
+        {/* Last session reference */}
+        {lEx&&lEx.sets&&lEx.sets.length>0&&!allSetsDone&&<div style={{background:'#111',borderLeft:'2px solid #2A2A2A',borderRadius:8,padding:'10px 14px',marginBottom:16}}>
+          <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Last Session</div>
+          {lEx.sets.map((s,i)=><div key={i} style={{display:'flex',gap:12,fontSize:13,color:'#555',lineHeight:1.8}}>
+            <span>Set {i+1}</span><span>{toDisp(s.kg,unit)}{unit} &times; {s.reps}</span>
+          </div>)}
+        </div>}
 
-        {/* Set rows — Gymshark style */}
-        {cur.rows.map((row,i)=>(
-          <div key={i} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 44px',gap:6,alignItems:'center',marginBottom:8,padding:'8px 6px',borderRadius:10,background:row.done?'rgba(5,150,105,0.15)':'#111',border:'1px solid '+(row.done?'#059669':'#222')}}>
-            <div style={{fontSize:13,fontWeight:700,color:row.done?G:'#666',textAlign:'center'}}>{i+1}</div>
-            <input value={row.w} onChange={e=>updRow(i,'w',e.target.value)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="0" style={iSty}/>
-            <input value={row.r} onChange={e=>updRow(i,'r',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0" style={iSty}/>
-            <input value={row.rpe} onChange={e=>updRow(i,'rpe',e.target.value)} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="–" style={iSty}/>
-            <button onClick={()=>markDone(i)} style={{width:'100%',height:40,borderRadius:8,border:'none',cursor:'pointer',fontSize:18,fontWeight:700,background:row.done?G:'#1E1E1E',color:row.done?'#fff':'#555'}}>
-              {row.done?'\u2713':'\u2014'}
-            </button>
+        {/* Current set inputs — shown when sets remain */}
+        {!allSetsDone&&<>
+          <div style={{fontSize:11,color:A,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>
+            Set {setsDone+1} of {setsTotal}
           </div>
-        ))}
-
-        <button onClick={()=>setExs(p=>p.map((e,i)=>i!==ei?e:{...e,rows:[...e.rows,{w:'',r:'',rpe:'',done:false}]}))}
-          style={{width:'100%',height:38,borderRadius:10,border:'1px dashed #333',background:'transparent',color:'#666',fontSize:13,fontWeight:600,cursor:'pointer',marginBottom:16}}>
-          + Add Set
-        </button>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
+            {/* Weight */}
+            <div>
+              <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>{unit==='kg'?'Kg':'Lbs'}</div>
+              <input value={cur.curW} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curW:e.target.value}))}
+                type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="0"
+                style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
+            </div>
+            {/* Reps */}
+            <div>
+              <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>Reps</div>
+              <input value={cur.curR} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curR:e.target.value}))}
+                type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0"
+                style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
+            </div>
+            {/* RPE */}
+            <div>
+              <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>RPE</div>
+              <input value={cur.curRpe} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curRpe:e.target.value}))}
+                type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="–"
+                style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
+            </div>
+          </div>
+        </>}
 
         {/* Rest timer */}
-        {secs>0&&<div style={{background:'#111',borderRadius:12,padding:'14px 16px',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        {secs>0&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#111',border:'1px solid #1E1E1E',borderRadius:10,padding:'12px 16px',marginBottom:12}}>
           <div>
-            <div style={{fontSize:11,color:'#666',fontWeight:700,textTransform:'uppercase',marginBottom:2}}>Rest Timer</div>
-            <div style={{fontSize:28,fontWeight:800,color:A}}>{fmtTime(secs)}</div>
+            <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:2}}>Rest</div>
+            <div style={{fontSize:26,fontWeight:800,color:A,fontVariantNumeric:'tabular-nums'}}>{fmtTime(secs)}</div>
           </div>
-          <button onClick={()=>{if(tmr.current)clearInterval(tmr.current);setSecs(0);setTotSecs(0);}} style={{background:'#1E1E1E',border:'1px solid #333',borderRadius:8,color:'#999',fontSize:13,padding:'8px 14px',cursor:'pointer'}}>Skip</button>
+          <button onClick={stopRest} style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#555',fontSize:13,padding:'8px 14px',cursor:'pointer',fontFamily:'inherit'}}>Skip</button>
         </div>}
-        {secs===0&&<button onClick={()=>startRest(cur.type==='Compound'?120:60)}
-          style={{width:'100%',height:38,borderRadius:10,border:'1px solid #333',background:'transparent',color:'#666',fontSize:12,fontWeight:600,cursor:'pointer',marginBottom:10}}>
-          Start Rest Timer ({cur.type==='Compound'?'2:00':'1:00'})
-        </button>}
 
-        {/* Notes */}
-        {cur.pn&&<div style={{background:'#111',borderLeft:'3px solid #444',borderRadius:8,padding:'8px 12px',marginBottom:8}}>
-          <div style={{fontSize:10,color:'#555',fontWeight:700,textTransform:'uppercase',marginBottom:2}}>Last Notes</div>
-          <div style={{fontSize:12,color:'#888'}}>{cur.pn}</div>
-        </div>}
-        <textarea value={cur.notes} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,notes:e.target.value}))}
-          placeholder="Session notes..."
-          style={{width:'100%',height:52,background:'#111',border:'1px solid #333',borderRadius:10,color:'#fff',fontSize:13,padding:'8px 12px',fontFamily:'inherit',lineHeight:1.4,outline:'none',marginBottom:8}}/>
+        {/* Notes (shown after all sets done) */}
+        {allSetsDone&&<>
+          {cur.pn&&<div style={{background:'#111',borderLeft:'2px solid #2A2A2A',borderRadius:8,padding:'10px 14px',marginBottom:12}}>
+            <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',marginBottom:4}}>Last Notes</div>
+            <div style={{fontSize:13,color:'#555'}}>{cur.pn}</div>
+          </div>}
+          <textarea value={cur.notes} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,notes:e.target.value}))}
+            placeholder="Notes for this exercise..."
+            style={{width:'100%',height:52,background:'#111',border:'1px solid #1E1E1E',borderRadius:10,color:'#fff',fontSize:13,padding:'8px 12px',fontFamily:'inherit',lineHeight:1.4,outline:'none',marginBottom:8}}/>
+        </>}
       </div>
 
-      {/* ── Bottom nav ── */}
-      <div style={{background:'#111',borderTop:'1px solid #222',padding:'12px 16px 32px',display:'flex',gap:10,flexShrink:0}}>
-        {ei>0&&<button onClick={goPrev} style={{width:48,height:50,borderRadius:12,background:'#1E1E1E',border:'1px solid #333',color:'#fff',fontSize:22,cursor:'pointer'}}>&#8249;</button>}
-        {isLast
-          ?<button onClick={finish} style={{flex:1,height:50,borderRadius:12,border:'none',background:G,color:'#fff',fontSize:15,fontWeight:800,cursor:'pointer'}}>Finish Workout &#10003;</button>
-          :<button onClick={goNext} style={{flex:1,height:50,borderRadius:12,border:'none',background:'linear-gradient(135deg,#B45309,'+A+')',color:'#000',fontSize:15,fontWeight:800,cursor:'pointer'}}>Next Exercise &#8250;</button>}
+      {/* Footer */}
+      <div style={{background:'#0F0F0F',borderTop:'1px solid #1E1E1E',padding:'12px 16px 32px',display:'flex',flexDirection:'column',gap:10,flexShrink:0}}>
+        {/* Primary action */}
+        <button onClick={actionFn} style={{width:'100%',height:54,borderRadius:14,border:'none',cursor:'pointer',fontSize:16,fontWeight:800,color:'#fff',fontFamily:'inherit',...actionStyle}}>
+          {actionLabel}
+        </button>
+        {/* Cancel workout */}
+        <button onClick={()=>setShowCancel(true)}
+          style={{width:'100%',height:44,borderRadius:12,border:'1px solid #1E1E1E',background:'transparent',color:'#444',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
+          Cancel Workout
+        </button>
       </div>
 
-      {/* ── Swap sheet ── */}
+      {/* Cancel confirm dialog */}
+      {showCancel&&<>
+        <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.8)',zIndex:10}}/>
+        <div style={{position:'absolute',left:20,right:20,top:'50%',transform:'translateY(-50%)',background:'#111',border:'1px solid #2A2A2A',borderRadius:16,padding:22,zIndex:11}}>
+          <div style={{fontSize:17,fontWeight:800,marginBottom:6}}>Cancel Workout?</div>
+          <div style={{fontSize:14,color:'#555',lineHeight:1.5,marginBottom:18}}>Your progress won't be saved.</div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>setShowCancel(false)} style={{flex:1,height:46,borderRadius:10,border:'1px solid #2A2A2A',background:'transparent',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Keep Going</button>
+            <button onClick={onExit} style={{flex:1,height:46,borderRadius:10,border:'none',background:'#1E1E1E',color:'#666',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+          </div>
+        </div>
+      </>}
+
+      {/* Swap sheet */}
       {showSwap&&<>
         <div onClick={()=>setShowSwap(false)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.7)',zIndex:10}}/>
-        <div style={{position:'absolute',left:0,right:0,bottom:0,maxHeight:'70%',background:'#161616',borderRadius:'20px 20px 0 0',zIndex:11,display:'flex',flexDirection:'column'}}>
-          <div onClick={()=>setShowSwap(false)} style={{display:'flex',justifyContent:'center',padding:'10px 0 6px',cursor:'pointer'}}><div style={{width:40,height:4,borderRadius:2,background:'#333'}}/></div>
-          <div style={{padding:'4px 20px 10px',borderBottom:'1px solid #222'}}>
-            <div style={{fontSize:16,fontWeight:800}}>Swap Exercise</div>
-            <div style={{fontSize:12,color:A,fontWeight:600,marginTop:2}}>Saves for future sessions</div>
+        <div style={{position:'absolute',left:0,right:0,bottom:0,maxHeight:'70%',background:'#111',borderRadius:'20px 20px 0 0',zIndex:11,display:'flex',flexDirection:'column'}}>
+          <div onClick={()=>setShowSwap(false)} style={{display:'flex',justifyContent:'center',padding:'10px 0 6px',cursor:'pointer'}}>
+            <div style={{width:36,height:3,borderRadius:2,background:'#2A2A2A'}}/>
           </div>
-          <div style={{overflowY:'scroll',WebkitOverflowScrolling:'touch',padding:'8px 20px 28px',display:'flex',flexDirection:'column',gap:8}}>
+          <div style={{padding:'4px 20px 12px',borderBottom:'1px solid #1E1E1E'}}>
+            <div style={{fontSize:15,fontWeight:800}}>Swap Exercise</div>
+            <div style={{fontSize:12,color:'#444',marginTop:2}}>Saves for future sessions</div>
+          </div>
+          <div style={{overflowY:'scroll',WebkitOverflowScrolling:'touch',padding:'8px 20px 28px',display:'flex',flexDirection:'column',gap:7}}>
             {(ALT[cur.base]||[]).map((alt,j)=>(
-              <button key={j} onClick={()=>doSwap(alt)}
-                style={{padding:'13px 14px',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600,textAlign:'left',
-                  background:cur.name===alt?'rgba(245,158,11,0.1)':'#1E1E1E',border:'1px solid '+(cur.name===alt?A:'#333'),color:'#fff'}}>
+              <button key={j} onClick={()=>doSwap(alt)} style={{padding:'12px 14px',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600,textAlign:'left',fontFamily:'inherit',
+                background:cur.name===alt?'rgba(99,102,241,0.1)':'#1A1A1A',border:'1px solid '+(cur.name===alt?A:'#2A2A2A'),color:'#fff'}}>
                 {alt}
               </button>
             ))}
-            {cur.name!==cur.base&&<button onClick={()=>doSwap(cur.base)}
-              style={{padding:12,borderRadius:10,border:'1px dashed #333',background:'transparent',color:'#666',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+            {cur.name!==cur.base&&<button onClick={()=>doSwap(cur.base)} style={{padding:12,borderRadius:10,border:'1px dashed #2A2A2A',background:'transparent',color:'#555',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
               Reset to {cur.base}
             </button>}
           </div>
@@ -473,12 +549,10 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
     </div>
   );
 
-  // Render via portal directly into document.body — no parent CSS can interfere
   return ReactDOM.createPortal(workout, document.body);
 }
 
 
-// ── WORKOUT COMPLETE ──────────────────────────────────────────────────────────
 function WorkoutComplete({entry,unit,prs,duration,onHome}){
   const vol=toDisp(entry.vol||0,unit);
   const sets=entry.exercises.reduce((a,e)=>a+e.sets.length,0);
@@ -501,7 +575,7 @@ function WorkoutComplete({entry,unit,prs,duration,onHome}){
           <div style={{fontSize:12,fontWeight:800,color:'#FEF3C7',marginBottom:4}}>&#127942; Personal Records</div>
           {prs.map((p,i)=><div key={i} style={{fontSize:12,color:'#FEF3C7',lineHeight:1.8}}>{p.name} &mdash; {p.weight}{unit}</div>)}
         </div>}
-        <Btn onClick={onHome} ch="Back to Home" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#B45309,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
+        <Btn onClick={onHome} ch="Back to Home" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#4338CA,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
       </div>
     </FS>
   );
@@ -605,7 +679,7 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
               <div style={{fontSize:11,color:'#6B7280',marginTop:1}}>{a.d}</div>
             </div>)}
           </div>
-          <Btn onClick={calc} ch="Calculate" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#B45309,'+A+')',color:'#000',fontSize:15,fontWeight:800}}/>
+          <Btn onClick={calc} ch="Calculate" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#4338CA,'+A+')',color:'#000',fontSize:15,fontWeight:800}}/>
         </>}/>
         {res&&<div>
           <RC val={fmt(res.bmr)+' kcal'} lbl="BMR" sub="Base metabolic rate at rest"/>
@@ -684,7 +758,7 @@ function Milestone({days,onClose}){
     <div style={{fontSize:56,marginBottom:8}}>{days>=30?'\uD83C\uDFC6':days>=14?'\uD83D\uDCAA':'\uD83D\uDD25'}</div>
     <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{days}-Day Streak!</div>
     <div style={{fontSize:14,color:'#9CA3AF',marginBottom:24}}>You're building serious consistency.</div>
-    <Btn onClick={onClose} ch="Nice!" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#B45309,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
+    <Btn onClick={onClose} ch="Nice!" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#4338CA,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
   </div>;
 }
 
