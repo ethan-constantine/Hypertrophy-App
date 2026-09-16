@@ -76,7 +76,22 @@ const fmtDate=d=>new Date(d).toLocaleDateString('en-GB',{weekday:'short',day:'nu
 const fmtTime=s=>Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;
 const fmt=n=>Math.round(n).toLocaleString();
 const DEF_ST={cur:0,best:0,lastDate:null,total:0,dates:[]};
-const ACTS=[{v:'sedentary',t:'Sedentary',d:'Desk job, little exercise'},{v:'light',t:'Lightly Active',d:'1-2 sessions/week'},{v:'moderate',t:'Moderately Active',d:'3-4 sessions/week',rec:true},{v:'active',t:'Very Active',d:'5-6 sessions/week'},{v:'extreme',t:'Extremely Active',d:'Daily training'}];
+// Two-axis activity model — daily/occupational activity and structured training
+// are separate contributors to total energy expenditure (IOM Dietary Reference
+// Intakes for Energy, 2005), so a single dropdown conflating them misclassifies
+// anyone with an active job AND a training habit, or vice versa.
+const JOB_ACTS=[
+  {v:'desk',t:'Desk Job',d:'Mostly sitting, minimal daily movement',base:1.20},
+  {v:'onfeet',t:'On My Feet Sometimes',d:'Teaching, retail, light physical work',base:1.30},
+  {v:'active',t:'On My Feet Most of the Day',d:'Trades, nursing, hospitality',base:1.40},
+  {v:'labour',t:'Heavy Physical Labour',d:'Construction, farming, manual work',base:1.50},
+];
+const TRAIN_FREQS=[
+  {v:'0-2',t:'0-2 sessions/week',add:0.00},
+  {v:'3-4',t:'3-4 sessions/week',add:0.15},
+  {v:'5-6',t:'5-6 sessions/week',add:0.30},
+  {v:'7+',t:'7+ sessions/week',add:0.45},
+];
 
 function prevBest(hist,label,name){for(const h of hist){if(h.label!==label)continue;const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ws=e.sets.map(s=>s.kg||0).filter(w=>w>0);if(ws.length)return Math.max(...ws);}}return null;}
 function allBest(hist,name){let b=null;for(const h of hist){const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ws=e.sets.map(s=>s.kg||0).filter(w=>w>0);if(ws.length){const m=Math.max(...ws);if(b===null||m>b)b=m;}}}return b;}
@@ -614,8 +629,8 @@ function Progress({hist,unit}){
 
 // ── NUTRITION ─────────────────────────────────────────────────────────────────
 function Nutrition({saved,savedRes,onSave,onSaveRes}){
-  const DEF={gender:'male',age:'',cm:'',ft:'',inch:'',kg:'',lbs:'',activity:'moderate',goal:'bulk'};
-  const [n,setN]=useState(saved||DEF);
+  const DEF={gender:'male',age:'',cm:'',ft:'',inch:'',kg:'',lbs:'',job:'desk',freq:'3-4',goal:'bulk'};
+  const [n,setN]=useState({...DEF,...(saved||{})});
   const [res,setRes]=useState(savedRes||null);
   const [errs,setErrs]=useState({});
   const upd=(f,v)=>setN(p=>({...p,[f]:v}));
@@ -629,7 +644,9 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
     setErrs({});
     const m=n.gender==='male';
     const bmr=m?(10*kg+6.25*cm-5*age+5):(10*kg+6.25*cm-5*age-161);
-    const tdee=bmr*({sedentary:1.2,light:1.375,moderate:1.55,active:1.725,extreme:1.9}[n.activity]||1.55);
+    const jobBase=(JOB_ACTS.find(j=>j.v===n.job)||JOB_ACTS[0]).base;
+    const trainAdd=(TRAIN_FREQS.find(t=>t.v===n.freq)||TRAIN_FREQS[1]).add;
+    const tdee=bmr*(jobBase+trainAdd);
     const lbsW=kg*2.20462;
     // Bulk: Iraki et al. (2019) Sports 7:154 — off-season guidance is expressed as
     // a percentage of maintenance (10-20% above TDEE for novice/intermediate lifters,
@@ -693,14 +710,17 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
             </div>
             {errs.w&&<div style={{fontSize:12,color:R,marginTop:4}}>{errs.w}</div>}
           </div>
-          <div><div style={{fontSize:12,color:'#9CA3AF',fontWeight:600,marginBottom:7}}>ACTIVITY LEVEL</div>
-            {ACTS.map(a=><div key={a.v} onClick={()=>updS({activity:a.v})}
-              style={{padding:'9px 12px',borderRadius:10,cursor:'pointer',marginBottom:6,background:n.activity===a.v?'rgba(56,189,248,0.1)':'#1E1E1E',border:'1px solid '+(n.activity===a.v?A:B)}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                <div style={{fontSize:13,fontWeight:700,color:n.activity===a.v?'#fff':'#E5E7EB'}}>{a.t}</div>
-                {a.rec&&<div style={{fontSize:9,fontWeight:700,color:G,background:'rgba(125,211,252,0.15)',borderRadius:4,padding:'2px 6px',whiteSpace:'nowrap'}}>RECOMMENDED</div>}
-              </div>
+          <div><div style={{fontSize:12,color:'#9CA3AF',fontWeight:600,marginBottom:7}}>DAILY ACTIVITY (JOB / LIFESTYLE)</div>
+            {JOB_ACTS.map(a=><div key={a.v} onClick={()=>updS({job:a.v})}
+              style={{padding:'9px 12px',borderRadius:10,cursor:'pointer',marginBottom:6,background:n.job===a.v?'rgba(56,189,248,0.1)':'#1E1E1E',border:'1px solid '+(n.job===a.v?A:B)}}>
+              <div style={{fontSize:13,fontWeight:700,color:n.job===a.v?'#fff':'#E5E7EB'}}>{a.t}</div>
               <div style={{fontSize:11,color:'#6B7280',marginTop:1}}>{a.d}</div>
+            </div>)}
+          </div>
+          <div><div style={{fontSize:12,color:'#9CA3AF',fontWeight:600,marginBottom:7}}>WEEKLY TRAINING</div>
+            {TRAIN_FREQS.map(t=><div key={t.v} onClick={()=>updS({freq:t.v})}
+              style={{padding:'9px 12px',borderRadius:10,cursor:'pointer',marginBottom:6,background:n.freq===t.v?'rgba(56,189,248,0.1)':'#1E1E1E',border:'1px solid '+(n.freq===t.v?A:B)}}>
+              <div style={{fontSize:13,fontWeight:700,color:n.freq===t.v?'#fff':'#E5E7EB'}}>{t.t}</div>
             </div>)}
           </div>
           <Btn onClick={calc} ch="Calculate" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:15,fontWeight:800}}/>
@@ -715,14 +735,14 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
             <RC val={res.pMin+'g \u2013 '+res.pTgt+'g'} lbl="Protein" sub="0.7-0.8g per lb bodyweight" color="#F97316"/>
             <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Hormone health optimised" color={res.m?A:'#818CF8'}/>
             <RC val={res.cLo+'g \u2013 '+res.cHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
-            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Surplus expressed as a percentage of maintenance (rather than a fixed kcal number) so it scales fairly regardless of body size, following off-season guidance for natural lifters — Iraki, Fitschen, Espinar &amp; Helms (2019), <em>Sports</em> 7:154.</div>
+            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Daily activity is combined from job/lifestyle and weekly training separately (Institute of Medicine Dietary Reference Intakes for Energy, 2005) rather than one blended category, since an active job plus regular training raises TDEE more than either alone. Surplus size follows Iraki, Fitschen, Espinar &amp; Helms (2019), <em>Sports</em> 7:154.</div>
           </>:<>
             <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'14px 0 8px'}}>Fat Loss (Cutting)</div>
             <RC val={fmt(res.cutLo)+' \u2013 '+fmt(res.cutHi)+' kcal'} lbl="Calorie Target" sub="10-20% below TDEE" hi color={A}/>
             <RC val={res.pMinCut+'g \u2013 '+res.pTgtCut+'g'} lbl="Protein" sub="Higher than a surplus phase to protect muscle" color="#F97316"/>
             <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Same range as muscle building" color={res.m?A:'#818CF8'}/>
             <RC val={res.cutCLo+'g \u2013 '+res.cutCHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
-            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Deficit expressed as a percentage of maintenance (rather than a fixed kcal number) so it scales fairly regardless of body size — a smaller person isn't handed the same absolute cut as a much larger one. Basis: Trexler, Smith-Ryan &amp; Norton (2014), <em>J Int Soc Sports Nutr</em> 11:7, on moderate deficits preserving lean mass and limiting metabolic adaptation; protein raised per Helms, Aragon &amp; Fitschen (2014) to offset increased muscle-loss risk during restriction.</div>
+            <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Daily activity is combined from job/lifestyle and weekly training separately (Institute of Medicine Dietary Reference Intakes for Energy, 2005) rather than one blended category. Deficit size follows Trexler, Smith-Ryan &amp; Norton (2014), <em>J Int Soc Sports Nutr</em> 11:7; protein raised per Helms, Aragon &amp; Fitschen (2014) to offset increased muscle-loss risk during restriction.</div>
           </>}
         </div>}
       </div>
