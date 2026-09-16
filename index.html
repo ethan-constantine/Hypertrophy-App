@@ -634,7 +634,16 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
     const pMin=Math.round(lbsW*0.73),pTgt=Math.round(lbsW*0.82);
     const fMin=Math.round(m?kg:kg*0.7),fTgt=Math.round(m?kg*1.2:kg*0.9);
     const mLo=tdee+350,mHi=tdee+500;
-    const r={bmr:Math.round(bmr),tdee:Math.round(tdee),mLo:Math.round(mLo),mHi:Math.round(mHi),pMin,pTgt,fMin,fTgt,cLo:Math.round((mLo-fMin*9-pMin*4)/4),cHi:Math.round((mHi-fTgt*9-pTgt*4)/4),m};
+    // Cutting: Helms, Aragon & Fitschen (2014) J Int Soc Sports Nutr 11:20 —
+    // 500-750 kcal/day deficit targets ~0.5-1% bodyweight loss/week while preserving muscle.
+    // Protein needs rise during a cut: 2.3-3.1 g/kg lean mass, approximated here as
+    // ~0.9-1.0 g/lb total bodyweight when lean mass isn't measured directly.
+    const cutLo=tdee-750,cutHi=tdee-500;
+    const pMinCut=Math.round(lbsW*0.9),pTgtCut=Math.round(lbsW*1.0);
+    const cutCLo=Math.max(0,Math.round((cutLo-fTgt*9-pTgtCut*4)/4));
+    const cutCHi=Math.max(0,Math.round((cutHi-fMin*9-pMinCut*4)/4));
+    const r={bmr:Math.round(bmr),tdee:Math.round(tdee),mLo:Math.round(mLo),mHi:Math.round(mHi),pMin,pTgt,fMin,fTgt,cLo:Math.round((mLo-fMin*9-pMin*4)/4),cHi:Math.round((mHi-fTgt*9-pTgt*4)/4),
+      cutLo:Math.round(cutLo),cutHi:Math.round(cutHi),pMinCut,pTgtCut,cutCLo,cutCHi,m};
     setRes(r);onSaveRes(r);
   }
   const Pill=({a,on,l})=><Btn on={on} onClick={on} ch={l} style={{flex:1,height:44,borderRadius:10,background:a?A:'transparent',color:a?'#000':'#9CA3AF',border:'1px solid '+B,fontSize:14,fontWeight:700}}/>;
@@ -689,11 +698,20 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
         {res&&<div>
           <RC val={fmt(res.bmr)+' kcal'} lbl="BMR" sub="Base metabolic rate at rest"/>
           <RC val={fmt(res.tdee)+' kcal'} lbl="TDEE" sub="Total daily calories to maintain weight"/>
-          <RC val={fmt(res.mLo)+' \u2013 '+fmt(res.mHi)+' kcal'} lbl="Muscle Building" sub="TDEE + 350-500 kcal surplus" hi color={A}/>
+
+          <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'14px 0 8px'}}>Muscle Building</div>
+          <RC val={fmt(res.mLo)+' \u2013 '+fmt(res.mHi)+' kcal'} lbl="Calorie Target" sub="TDEE + 350-500 kcal surplus" hi color={A}/>
           <RC val={res.pMin+'g \u2013 '+res.pTgt+'g'} lbl="Protein" sub="0.7-0.8g per lb bodyweight" color="#F97316"/>
-          <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Hormone health optimised" color={res.m?A:'#60A5FA'}/>
+          <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Hormone health optimised" color={res.m?A:'#818CF8'}/>
           <RC val={res.cLo+'g \u2013 '+res.cHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
-          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.5,padding:'4px 0 8px'}}>Estimates based on population averages.</div>
+
+          <div style={{fontSize:11,color:'#555',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',margin:'18px 0 8px'}}>Fat Loss (Cutting)</div>
+          <RC val={fmt(res.cutLo)+' \u2013 '+fmt(res.cutHi)+' kcal'} lbl="Calorie Target" sub="TDEE - 500 to -750 kcal deficit" hi color={A}/>
+          <RC val={res.pMinCut+'g \u2013 '+res.pTgtCut+'g'} lbl="Protein" sub="Higher than a surplus phase to protect muscle" color="#F97316"/>
+          <RC val={res.fMin+'g \u2013 '+res.fTgt+'g ('+(res.m?'1.0-1.2':'0.7-0.9')+'g/kg)'} lbl="Fat" sub="Same range as muscle building" color={res.m?A:'#818CF8'}/>
+          <RC val={res.cutCLo+'g \u2013 '+res.cutCHi+'g'} lbl="Carbohydrates" sub="Remaining after protein and fat" color={G}/>
+
+          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.6,padding:'8px 0 8px'}}>Estimates based on population averages, individual needs vary. Cutting targets follow Helms, Aragon &amp; Fitschen (2014), <em>J Int Soc Sports Nutr</em> 11:20 — a 500&ndash;750 kcal/day deficit for approximately 0.5&ndash;1% bodyweight loss per week while preserving muscle, with protein raised to help offset the increased risk of muscle loss during restriction.</div>
         </div>}
       </div>
     </FS>
