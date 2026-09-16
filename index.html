@@ -303,7 +303,6 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   // All hooks first
   const [exs,setExs]=useState(buildEx);
   const [ei,setEi]=useState(0);
-  const [overload,setOverload]=useState(false);
   const [pr,setPr]=useState(null);
   const [showSwap,setShowSwap]=useState(false);
   const [secs,setSecs]=useState(0);
@@ -312,19 +311,8 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   const tmr=useRef(null);
   const t0=useRef(Date.now());
   const tx=useRef(null);
-  const prTimer=useRef(null);
-  const overloadTimer=useRef(null);
-  const prFadeTimer=useRef(null);
-  const overloadFadeTimer=useRef(null);
-  const [prLeaving,setPrLeaving]=useState(false);
-  const [overloadLeaving,setOverloadLeaving]=useState(false);
-  useEffect(()=>()=>{
-    if(tmr.current)clearInterval(tmr.current);
-    if(prTimer.current)clearTimeout(prTimer.current);
-    if(overloadTimer.current)clearTimeout(overloadTimer.current);
-    if(prFadeTimer.current)clearTimeout(prFadeTimer.current);
-    if(overloadFadeTimer.current)clearTimeout(overloadFadeTimer.current);
-  },[]);
+
+  useEffect(()=>()=>{if(tmr.current)clearInterval(tmr.current);},[]);
 
   const cur=exs[ei];
   const setsDone=cur.logged.length;
@@ -345,34 +333,20 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
     const reps=parseFloat(cur.curR)||0;
     if(!reps)return; // need at least reps
     const isPR=kg>0&&(cur.atb===null||kg>cur.atb);
+    const hitTop=reps>=cur.rHi;
     const newLogged=[...cur.logged,{kg,reps,rpe:cur.curRpe,w:cur.curW,r:cur.curR}];
-    // Pre-fill next set with same weight
     setExs(p=>p.map((e,i)=>i!==ei?e:{...e,
       atb:isPR?kg:e.atb,
+      hitTop:e.hitTop||hitTop,
       logged:newLogged,
-      curW:cur.curW, // keep same weight for next set
+      curW:cur.curW,
       curR:'',curRpe:''}));
-    if(isPR){
-      setPr({name:cur.name,kg});
-      setPrLeaving(false);
-      if(prTimer.current)clearTimeout(prTimer.current);
-      if(prFadeTimer.current)clearTimeout(prFadeTimer.current);
-      prFadeTimer.current=setTimeout(()=>setPrLeaving(true),3600);
-      prTimer.current=setTimeout(()=>{setPr(null);setPrLeaving(false);},4000);
-    }
-    if(reps>=cur.rHi){
-      setOverload(true);
-      setOverloadLeaving(false);
-      if(overloadTimer.current)clearTimeout(overloadTimer.current);
-      if(overloadFadeTimer.current)clearTimeout(overloadFadeTimer.current);
-      overloadFadeTimer.current=setTimeout(()=>setOverloadLeaving(true),3600);
-      overloadTimer.current=setTimeout(()=>{setOverload(false);setOverloadLeaving(false);},4000);
-    }
+    if(isPR)setPr({name:cur.name,kg});
     startRest(cur.type==='Compound'?120:60);
   }
 
   function nextExercise(){
-    if(ei<exs.length-1){setEi(i=>i+1);setOverload(false);setPr(null);stopRest();}
+    if(ei<exs.length-1){setEi(i=>i+1);setPr(null);stopRest();}
   }
 
   function doSwap(nm){
@@ -387,14 +361,15 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   }
 
   function finish(){
-    let vol=0;const prs=[];
+    let vol=0;const prs=[];const toIncrease=[];
     const data=exs.map(e=>{
       e.logged.forEach(s=>{const kg=s.kg||0;vol+=kg*(s.reps||0);
         if(kg>0&&(e.atb===null||kg>e.atb)&&!prs.find(p=>p.name===e.name))prs.push({name:e.name,weight:toDisp(kg,unit)});});
+      if(e.hitTop)toIncrease.push(e.name);
       return{name:e.name,rHi:e.rHi,notes:e.notes||'',
         sets:e.logged.map(s=>({kg:s.kg||0,reps:s.reps||0,rpe:s.rpe}))};
     }).filter(e=>e.sets.length||e.notes);
-    onDone({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:data},prs,Math.round((Date.now()-t0.current)/60000));
+    onDone({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:data},prs,Math.round((Date.now()-t0.current)/60000),toIncrease);
   }
 
   const lh=hist.find(h=>h.label===sess.label&&h.exercises&&h.exercises.find(x=>x.name===cur.name));
@@ -434,6 +409,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
             <div style={{fontSize:22,fontWeight:800,lineHeight:1.2,marginBottom:4}}>{cur.name}</div>
             <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
             {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{toDisp(cur.pb,unit)}{unit}</span></div>}
+            {lEx&&lEx.sets&&lEx.sets.some(s=>s.reps>=cur.rHi)&&<div style={{fontSize:12,color:A,fontWeight:600,marginTop:4}}>&#8593; You maxed reps last time — add weight today</div>}
           </div>
           <button onClick={()=>setShowSwap(true)}
             style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#666',fontSize:12,padding:'7px 10px',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
@@ -441,14 +417,11 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           </button>
         </div>
         {/* Banners */}
-        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(52,211,153,0.15)',border:'1px solid rgba(52,211,153,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10,animation:(prLeaving?'fadeOut 0.4s ease forwards':'fadeIn 0.25s ease'),transition:'opacity 0.4s ease'}}>
+        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(52,211,153,0.15)',border:'1px solid rgba(52,211,153,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10}}>
           <span>&#127942;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:'#34D399'}}>New PR &mdash; {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
-          <button onClick={()=>{if(prTimer.current)clearTimeout(prTimer.current);if(prFadeTimer.current)clearTimeout(prFadeTimer.current);setPr(null);setPrLeaving(false);}} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
+          <button onClick={()=>setPr(null)} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
         </div>}
-        {overload&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(16,185,129,0.12)',border:'1px solid rgba(16,185,129,0.3)',borderRadius:8,padding:'8px 12px',marginTop:10,animation:(overloadLeaving?'fadeOut 0.4s ease forwards':'fadeIn 0.25s ease'),transition:'opacity 0.4s ease'}}>
-          <span>&#128200;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:A}}>Top of range &mdash; add weight next session</div>
-          <button onClick={()=>{if(overloadTimer.current)clearTimeout(overloadTimer.current);if(overloadFadeTimer.current)clearTimeout(overloadFadeTimer.current);setOverload(false);setOverloadLeaving(false);}} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
-        </div>}
+
       </div>
 
       {/* Body */}
@@ -581,7 +554,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
 }
 
 
-function WorkoutComplete({entry,unit,prs,duration,onHome}){
+function WorkoutComplete({entry,unit,prs,duration,toIncrease,onHome}){
   const vol=toDisp(entry.vol||0,unit);
   const sets=entry.exercises.reduce((a,e)=>a+e.sets.length,0);
   return(
@@ -599,9 +572,13 @@ function WorkoutComplete({entry,unit,prs,duration,onHome}){
             </div>
           ))}
         </div>
-        {prs.length>0&&<div style={{width:'100%',background:'linear-gradient(135deg,#92400E,#B45309)',borderRadius:12,padding:'12px 16px',marginBottom:16,textAlign:'left'}}>
-          <div style={{fontSize:12,fontWeight:800,color:'#FEF3C7',marginBottom:4}}>&#127942; Personal Records</div>
-          {prs.map((p,i)=><div key={i} style={{fontSize:12,color:'#FEF3C7',lineHeight:1.8}}>{p.name} &mdash; {p.weight}{unit}</div>)}
+        {prs.length>0&&<div style={{width:'100%',background:'linear-gradient(135deg,#065F46,#10B981)',borderRadius:12,padding:'12px 16px',marginBottom:12,textAlign:'left'}}>
+          <div style={{fontSize:12,fontWeight:800,color:'#D1FAE5',marginBottom:4}}>&#127942; Personal Records</div>
+          {prs.map((p,i)=><div key={i} style={{fontSize:12,color:'#D1FAE5',lineHeight:1.8}}>{p.name} &mdash; {p.weight}{unit}</div>)}
+        </div>}
+        {toIncrease&&toIncrease.length>0&&<div style={{width:'100%',background:'#161616',border:'1px solid '+B,borderRadius:12,padding:'12px 16px',marginBottom:16,textAlign:'left'}}>
+          <div style={{fontSize:12,fontWeight:800,color:A,marginBottom:4}}>&#8593; Ready to increase next time</div>
+          {toIncrease.map((n,i)=><div key={i} style={{fontSize:12,color:'#9CA3AF',lineHeight:1.8}}>{n}</div>)}
         </div>}
         <Btn onClick={onHome} ch="Back to Home" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#065F46,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
       </div>
@@ -822,7 +799,7 @@ function App(){
 
   function startSess(sess,pid){setAS({sess,planId:pid||planId});setScreen('session');}
 
-  function finishWorkout(entry,prs,dur){
+  function finishWorkout(entry,prs,dur,toIncrease){
     const nh=[entry,...hist];setHist(nh);sv(K.hi,nh);
     const today=new Date().toISOString().slice(0,10);
     const st=streak;let cur=st.cur;
@@ -831,7 +808,7 @@ function App(){
     setStreak(ns);sv(K.st,ns);
     const MILES=[7,14,30];
     if(MILES.includes(cur)&&!cel.includes(cur)){const nc=[...cel,cur];setCel(nc);sv(K.cl,nc);setMile(cur);}
-    setComp({entry,prs:prs||[],duration:dur||0});setScreen('complete');setAS(null);
+    setComp({entry,prs:prs||[],duration:dur||0,toIncrease:toIncrease||[]});setScreen('complete');setAS(null);
   }
 
   const showTab=!['session','workout','complete'].includes(screen);
@@ -853,7 +830,7 @@ function App(){
           onReset={pid=>{const nh=hist.filter(h=>h.planId!==pid);setHist(nh);sv(K.hi,nh);setStreak(s=>({...s,cur:0}));setScreen('home');setTab('home');}}
           onResetAll={()=>{Object.values(K).forEach(k=>{try{localStorage.removeItem(k);}catch{}});setOb(false);setName('');setUnit('kg');setPlanId('ppl');setHist([]);setStreak(DEF_ST);setCel([]);setSwaps({});setNutrIn(null);setNutrRes(null);}}
           onClose={()=>setScreen(tab)}/>}
-        {screen==='complete'&&comp&&<WorkoutComplete entry={comp.entry} unit={unit} prs={comp.prs} duration={comp.duration} onHome={()=>{setComp(null);setScreen('home');setTab('home');}}/>}
+        {screen==='complete'&&comp&&<WorkoutComplete entry={comp.entry} unit={unit} prs={comp.prs} duration={comp.duration} toIncrease={comp.toIncrease} onHome={()=>{setComp(null);setScreen('home');setTab('home');}}/>}
         {/* Workout — position:absolute same as all other working screens */}
         {screen==='workout'&&aS&&<ActiveWorkout planId={aS.planId} sess={aS.sess} hist={hist} unit={unit} swaps={swaps} onSaveSwap={saveSwap} onDone={finishWorkout} onExit={()=>{setScreen(tab);setAS(null);}}/>}
       </div>
