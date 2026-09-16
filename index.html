@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="theme-color" content="#0D1117">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Constantine Fitness">
@@ -13,7 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:#0A0A0A;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+html,body{width:100%;height:100%;overflow:hidden;background:#0D1117;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
 #root{position:fixed;inset:0;display:flex;flex-direction:column}
 button{cursor:pointer;border:none;background:transparent;color:inherit;font-family:inherit;-webkit-appearance:none}
 input,textarea{font-family:inherit;outline:none;-webkit-appearance:none;border:none}
@@ -27,7 +27,7 @@ textarea{resize:none}
 <script type="text/babel">
 const {useState,useEffect,useRef}=React;
 
-const A='#10B981',G='#34D399',R='#F87171',S='#141414',B='#252525';
+const A='#38BDF8',G='#7DD3FC',R='#F87171',S='#161B22',B='#293241';
 const K={ob:'cf.ob',nm:'cf.nm',ut:'cf.ut',pl:'cf.pl',hi:'cf.hi',st:'cf.st',cl:'cf.cl',nu:'cf.nu',nr:'cf.nr',sw:'cf.sw'};
 const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
@@ -148,7 +148,7 @@ function Onboarding({onDone}){
         </div>}
       </div>
       <Btn onClick={next} ch={step===1?"Let's Go":step===4?'Get Started':'Next'}
-        style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#065F46,'+A+')',color:'#000',fontSize:17,fontWeight:800,marginTop:16}}/>
+        style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:17,fontWeight:800,marginTop:16}}/>
     </div>
   );
 }
@@ -185,7 +185,7 @@ function Home({planId,hist,streak,onStart,onSettings}){
           <div style={{fontSize:15,fontWeight:700,marginBottom:2}}>{active}</div>
           <div style={{fontSize:12,color:'#9CA3AF',marginBottom:12}}>{sess.exercises.length} exercises &bull; {tot} sets &bull; ~{est} min</div>
           <Btn onClick={()=>onStart(sess)} ch="Start Session"
-            style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#065F46,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
+            style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
         </>} style={{marginBottom:16}}/>
         <div style={{fontSize:12,fontWeight:700,marginBottom:8}}>All Sessions</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat('+prog.sessions.length+',1fr)',gap:8}}>
@@ -193,7 +193,7 @@ function Home({planId,hist,streak,onStart,onSettings}){
             const isSel=s.label===active,isRec=s.label===rec;
             return<div key={i} onClick={()=>setSel(s.label===sel?null:s.label)}
               style={{padding:'9px 6px',borderRadius:12,textAlign:'center',cursor:'pointer',
-                background:isSel?'rgba(245,158,11,0.15)':'transparent',border:'1px solid '+(isSel?A:B)}}>
+                background:isSel?'rgba(56,189,248,0.15)':'transparent',border:'1px solid '+(isSel?A:B)}}>
               <div style={{fontSize:12,fontWeight:700,color:isSel?'#fff':'#9CA3AF'}}>{s.label}</div>
               {isRec&&!isSel&&<div style={{fontSize:9,color:A,marginTop:1}}>&#9658; next</div>}
             </div>;
@@ -266,7 +266,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
       </div>
       <div style={{padding:'10px 20px 28px',borderTop:'1px solid '+B,flexShrink:0}}>
         <Btn onClick={onBegin} ch="Start Workout"
-          style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#065F46,'+A+')',color:'#000',fontSize:17,fontWeight:800}}/>
+          style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:17,fontWeight:800}}/>
       </div>
       {swapIdx!==null&&<>
         <div onClick={()=>setSwapIdx(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:40}}/>
@@ -380,15 +380,15 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   if(allSetsDone && isLastEx){
     actionLabel='Finish Workout \u2713';
     actionFn=finish;
-    actionStyle={background:G};
+    actionStyle={background:'#10B981'};
   } else if(allSetsDone){
     actionLabel='Next Exercise \u203a';
     actionFn=nextExercise;
-    actionStyle={background:'linear-gradient(135deg,#065F46,'+A+')'};
+    actionStyle={background:'linear-gradient(135deg,#0C4A6E,'+A+')'};
   } else {
     actionLabel='Log Set '+(setsDone+1)+' of '+setsTotal;
     actionFn=logSet;
-    actionStyle={background:'linear-gradient(135deg,#065F46,'+A+')'};
+    actionStyle={background:'linear-gradient(135deg,#0C4A6E,'+A+')'};
   }
 
   const workout=(
@@ -417,8 +417,8 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           </button>
         </div>
         {/* Banners */}
-        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(52,211,153,0.15)',border:'1px solid rgba(52,211,153,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10}}>
-          <span>&#127942;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:'#34D399'}}>New PR &mdash; {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
+        {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(125,211,252,0.15)',border:'1px solid rgba(125,211,252,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10}}>
+          <span>&#127942;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:'#7DD3FC'}}>New PR &mdash; {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
           <button onClick={()=>setPr(null)} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
         </div>}
 
@@ -429,7 +429,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
         {/* Completed sets log */}
         {cur.logged.length>0&&<div style={{marginBottom:16}}>
           <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Completed</div>
-          {cur.logged.map((s,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'rgba(52,211,153,0.08)',border:'1px solid rgba(52,211,153,0.2)',borderRadius:8,marginBottom:6}}>
+          {cur.logged.map((s,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'rgba(125,211,252,0.08)',border:'1px solid rgba(125,211,252,0.2)',borderRadius:8,marginBottom:6}}>
             <span style={{fontSize:16,color:G}}>&#10003;</span>
             <div style={{flex:1,fontSize:14,color:'#888'}}>Set {i+1}</div>
             <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>
@@ -537,7 +537,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           <div style={{overflowY:'scroll',WebkitOverflowScrolling:'touch',padding:'8px 20px 28px',display:'flex',flexDirection:'column',gap:7}}>
             {(ALT[cur.base]||[]).map((alt,j)=>(
               <button key={j} onClick={()=>doSwap(alt)} style={{padding:'12px 14px',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600,textAlign:'left',fontFamily:'inherit',
-                background:cur.name===alt?'rgba(16,185,129,0.1)':'#1A1A1A',border:'1px solid '+(cur.name===alt?A:'#2A2A2A'),color:'#fff'}}>
+                background:cur.name===alt?'rgba(56,189,248,0.1)':'#1A1A1A',border:'1px solid '+(cur.name===alt?A:'#2A2A2A'),color:'#fff'}}>
                 {alt}
               </button>
             ))}
@@ -572,15 +572,15 @@ function WorkoutComplete({entry,unit,prs,duration,toIncrease,onHome}){
             </div>
           ))}
         </div>
-        {prs.length>0&&<div style={{width:'100%',background:'linear-gradient(135deg,#065F46,#10B981)',borderRadius:12,padding:'12px 16px',marginBottom:12,textAlign:'left'}}>
-          <div style={{fontSize:12,fontWeight:800,color:'#D1FAE5',marginBottom:4}}>&#127942; Personal Records</div>
-          {prs.map((p,i)=><div key={i} style={{fontSize:12,color:'#D1FAE5',lineHeight:1.8}}>{p.name} &mdash; {p.weight}{unit}</div>)}
+        {prs.length>0&&<div style={{width:'100%',background:'linear-gradient(135deg,#0C4A6E,#38BDF8)',borderRadius:12,padding:'12px 16px',marginBottom:12,textAlign:'left'}}>
+          <div style={{fontSize:12,fontWeight:800,color:'#E0F2FE',marginBottom:4}}>&#127942; Personal Records</div>
+          {prs.map((p,i)=><div key={i} style={{fontSize:12,color:'#E0F2FE',lineHeight:1.8}}>{p.name} &mdash; {p.weight}{unit}</div>)}
         </div>}
         {toIncrease&&toIncrease.length>0&&<div style={{width:'100%',background:'#161616',border:'1px solid '+B,borderRadius:12,padding:'12px 16px',marginBottom:16,textAlign:'left'}}>
           <div style={{fontSize:12,fontWeight:800,color:A,marginBottom:4}}>&#8593; Ready to increase next time</div>
           {toIncrease.map((n,i)=><div key={i} style={{fontSize:12,color:'#9CA3AF',lineHeight:1.8}}>{n}</div>)}
         </div>}
-        <Btn onClick={onHome} ch="Back to Home" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#065F46,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
+        <Btn onClick={onHome} ch="Back to Home" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
       </div>
     </FS>
   );
@@ -676,15 +676,15 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
           </div>
           <div><div style={{fontSize:12,color:'#9CA3AF',fontWeight:600,marginBottom:7}}>ACTIVITY LEVEL</div>
             {ACTS.map(a=><div key={a.v} onClick={()=>updS({activity:a.v})}
-              style={{padding:'9px 12px',borderRadius:10,cursor:'pointer',marginBottom:6,background:n.activity===a.v?'rgba(245,158,11,0.1)':'#1E1E1E',border:'1px solid '+(n.activity===a.v?A:B)}}>
+              style={{padding:'9px 12px',borderRadius:10,cursor:'pointer',marginBottom:6,background:n.activity===a.v?'rgba(56,189,248,0.1)':'#1E1E1E',border:'1px solid '+(n.activity===a.v?A:B)}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
                 <div style={{fontSize:13,fontWeight:700,color:n.activity===a.v?'#fff':'#E5E7EB'}}>{a.t}</div>
-                {a.rec&&<div style={{fontSize:9,fontWeight:700,color:G,background:'rgba(52,211,153,0.15)',borderRadius:4,padding:'2px 6px',whiteSpace:'nowrap'}}>RECOMMENDED</div>}
+                {a.rec&&<div style={{fontSize:9,fontWeight:700,color:G,background:'rgba(125,211,252,0.15)',borderRadius:4,padding:'2px 6px',whiteSpace:'nowrap'}}>RECOMMENDED</div>}
               </div>
               <div style={{fontSize:11,color:'#6B7280',marginTop:1}}>{a.d}</div>
             </div>)}
           </div>
-          <Btn onClick={calc} ch="Calculate" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#065F46,'+A+')',color:'#000',fontSize:15,fontWeight:800}}/>
+          <Btn onClick={calc} ch="Calculate" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:15,fontWeight:800}}/>
         </>}/>
         {res&&<div>
           <RC val={fmt(res.bmr)+' kcal'} lbl="BMR" sub="Base metabolic rate at rest"/>
@@ -763,7 +763,7 @@ function Milestone({days,onClose}){
     <div style={{fontSize:56,marginBottom:8}}>{days>=30?'\uD83C\uDFC6':days>=14?'\uD83D\uDCAA':'\uD83D\uDD25'}</div>
     <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{days}-Day Streak!</div>
     <div style={{fontSize:14,color:'#9CA3AF',marginBottom:24}}>You're building serious consistency.</div>
-    <Btn onClick={onClose} ch="Nice!" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#065F46,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
+    <Btn onClick={onClose} ch="Nice!" style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
   </div>;
 }
 
