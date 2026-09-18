@@ -58,11 +58,14 @@ const ALT={
   'Seated Leg Curl':['Lying Leg Curl','Single-Leg Lying Leg Curl','Standing Leg Curl','Nordic Curl'],
   'Lying Leg Curl Machine':['Seated Leg Curl','Single-Leg Lying Leg Curl','Standing Leg Curl','Nordic Curl'],
   'Cable Donkey Kick':['Machine Glute Kickback','Hip Thrust','Banded Glute Kickback'],
+  'VO2 Max Intervals — Run':['VO2 Max Intervals — Row'],
+  'VO2 Max Intervals — Row':['VO2 Max Intervals — Run'],
 };
 
 const ex=(n,s,lo,hi,t,r,cue)=>({name:n,sets:s,rLo:lo,rHi:hi,type:t,rpe:r,cue:cue||''});
 const plyo=(n,s,reps,rest,cue)=>({name:n,sets:s,reps:reps,rest:rest,type:'Plyo',cue:cue||''});
 const dist=(n,s,metres,rest,cue)=>({name:n,sets:s,metres:metres,rest:rest,type:'Distance',cue:cue||''});
+const interval=(n,s,workS,rest,cue)=>({name:n,sets:s,workS:workS,rest:rest,type:'Interval',cue:cue||''});
 const PROGS={
   ppl:{id:'ppl',name:'Push / Pull / Legs',short:'PPL',freq:'6x / week',sessions:[
     {key:'push',label:'Push',exercises:[ex('Flat Barbell Bench Press',3,6,10,'Compound',8),ex('Incline Dumbbell Press',2,8,12,'Compound',8),ex('Standing Overhead Press',3,8,10,'Compound',8),ex('Dumbbell Lateral Raise',4,12,15,'Isolation',10),ex('Cable Overhead Tricep Extension',3,10,12,'Isolation',10),ex('Cable Pushdown (Rope)',2,12,15,'Isolation',10)]},
@@ -95,16 +98,6 @@ const PROGS={
       ex('Bench Press',3,3,5,'Compound',9),
       ex('Pendlay Row',3,3,5,'Compound',9)
     ]},
-    {key:'station_power',label:'Station Power',exercises:[
-      dist('Sled Push',3,50,45,'Low drive position, short powerful steps. Open: 152kg men / 102kg women (incl. sled)'),
-      dist('Sled Pull',3,50,45,'Hand-over-hand, lean back, drive with legs. Open: 103kg men / 78kg women (incl. sled)'),
-      dist('Farmers Carry',3,200,45,'Tall posture, brace core, controlled steps. Open: 24kg/hand men / 16kg/hand women'),
-      dist('Burpee Broad Jumps',3,40,45,'Chest to floor, jump forward for distance'),
-      dist('SkiErg',3,500,45,'Drive down with lats, hinge from hips'),
-      dist('Rowing',3,500,45,'Legs-back-arms, controlled slide'),
-      dist('Sandbag Lunges',3,50,45,'Sandbag on back, upright torso, full step. Open: 20kg men / 10kg women'),
-      ex('Wall Balls',3,20,25,'Compound',8,'Open: 6kg men / 4kg women, 3m target men / 2.7m target women')
-    ]},
     {key:'compromised_1',label:'Compromised — Stations A',exercises:[
       dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
       dist('Sled Push',3,50,45,'Low drive position, short powerful steps. Open: 152kg men / 102kg women (incl. sled)'),
@@ -125,8 +118,9 @@ const PROGS={
       dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
       dist('Rowing',3,500,45,'Legs-back-arms, controlled slide')
     ]},
-    {key:'run_vo2max',label:'Run — VO2 Max Intervals',exercises:[ex('Placeholder — build with Ethan',3,8,12,'Compound',8)]},
-    {key:'run_km_repeats',label:'Run — KM Repeats',exercises:[ex('Placeholder — build with Ethan',3,8,12,'Compound',8)]}
+    {key:'run_vo2max',label:'Run — VO2 Max Intervals',exercises:[
+      interval('VO2 Max Intervals — Run',4,240,180,'Norwegian 4x4 — 90-95% max HR, hard but controlled (RPE 9). 3min easy jog recovery between rounds. Log distance covered each round to track progression.')
+    ]}
   ]}
 };
 
@@ -154,6 +148,8 @@ const TRAIN_FREQS=[
 
 function prevBest(hist,label,name){for(const h of hist){if(h.label!==label)continue;const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ws=e.sets.map(s=>s.kg||0).filter(w=>w>0);if(ws.length)return Math.max(...ws);}}return null;}
 function allBest(hist,name){let b=null;for(const h of hist){const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ws=e.sets.map(s=>s.kg||0).filter(w=>w>0);if(ws.length){const m=Math.max(...ws);if(b===null||m>b)b=m;}}}return b;}
+function prevBestMetres(hist,label,name){for(const h of hist){if(h.label!==label)continue;const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ms=e.sets.map(s=>s.reps||0).filter(m=>m>0);if(ms.length)return Math.max(...ms);}}return null;}
+function allBestMetres(hist,name){let b=null;for(const h of hist){const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ms=e.sets.map(s=>s.reps||0).filter(m=>m>0);if(ms.length){const m=Math.max(...ms);if(b===null||m>b)b=m;}}}return b;}
 function lastNotes(hist,label,name){for(const h of hist){if(h.label!==label)continue;const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.notes)return e.notes;}return '';}
 function nextSess(pid,hist){const ss=PROGS[pid].sessions;const ph=hist.filter(h=>h.planId===pid);if(!ph.length)return ss[0].label;const idx=ss.findIndex(s=>s.label===ph[0].label);return ss[(idx<0?0:idx+1)%ss.length].label;}
 
@@ -235,8 +231,8 @@ function Home({planId,hist,streak,onStart,onSettings}){
   const active=sel||rec;
   const sess=prog.sessions.find(s=>s.label===active)||prog.sessions[0];
   const tot=sess.exercises.reduce((a,e)=>a+e.sets,0);
-  const isPlyoSess=sess.exercises.length>0&&(sess.exercises[0].type==='Plyo'||sess.exercises[0].type==='Distance');
-  const est=isPlyoSess?Math.round((sess.exercises.reduce((a,e)=>a+e.sets*(e.rest||90),0)/60+5)/5)*5:Math.round((tot*3.2+sess.exercises.length*1.2)/5)*5;
+  const isPlyoSess=sess.exercises.length>0&&(sess.exercises[0].type==='Plyo'||sess.exercises[0].type==='Distance'||sess.exercises[0].type==='Interval');
+  const est=isPlyoSess?Math.round((sess.exercises.reduce((a,e)=>a+e.sets*((e.workS||0)+(e.rest||90)),0)/60+5)/5)*5:Math.round((tot*3.2+sess.exercises.length*1.2)/5)*5;
   return(
     <FS scroll>
       <div style={{padding:'60px 20px 20px'}}>
@@ -294,8 +290,8 @@ function Programmes({planId,onStart}){
         </div>
         {prog.sessions.map((s,i)=>{
           const tot=s.exercises.reduce((a,e)=>a+e.sets,0);
-          const isPlyoSess=s.exercises.length>0&&(s.exercises[0].type==='Plyo'||s.exercises[0].type==='Distance');
-          const est=isPlyoSess?Math.round((s.exercises.reduce((a,e)=>a+e.sets*(e.rest||90),0)/60+5)/5)*5:Math.round((tot*3.2+s.exercises.length*1.2)/5)*5;
+          const isPlyoSess=s.exercises.length>0&&(s.exercises[0].type==='Plyo'||s.exercises[0].type==='Distance'||s.exercises[0].type==='Interval');
+          const est=isPlyoSess?Math.round((s.exercises.reduce((a,e)=>a+e.sets*((e.workS||0)+(e.rest||90)),0)/60+5)/5)*5:Math.round((tot*3.2+s.exercises.length*1.2)/5)*5;
           return<Card key={i} style={{marginBottom:10,cursor:'pointer'}} ch={<>
             <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{s.label}</div>
             <div style={{fontSize:12,color:'#9CA3AF'}}>{s.exercises.length} exercises &bull; {tot} sets &bull; ~{est} min</div>
@@ -335,6 +331,9 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
             </div>
             {e.type==='Plyo'||e.type==='Distance'?<>
               <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.type==='Distance'?e.metres+' metres':e.reps+' reps'}</div>
+              <div style={{fontSize:11,color:'#6B7280'}}>{e.cue}</div>
+            </>:e.type==='Interval'?<>
+              <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {fmtTime(e.workS)} hard &bull; {fmtTime(e.rest)} easy</div>
               <div style={{fontSize:11,color:'#6B7280'}}>{e.cue}</div>
             </>:<>
               <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.rLo}&ndash;{e.rHi} reps</div>
@@ -378,6 +377,11 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
       return{...e,name,base:e.name,ei:i,pb:null,atb:null,
         pn:lastNotes(hist,sess.label,name),notes:'',
         logged:[]};
+    }
+    if(e.type==='Interval'){
+      return{...e,name,base:e.name,ei:i,pb:prevBestMetres(hist,sess.label,name),atb:allBestMetres(hist,name),
+        pn:lastNotes(hist,sess.label,name),notes:'',
+        logged:[],curR:''};
     }
     const pb=prevBest(hist,sess.label,name);
     return{...e,name,base:e.name,ei:i,pb,atb:allBest(hist,name),
@@ -428,6 +432,19 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
       startRest(cur.rest||90);
       return;
     }
+    if(cur.type==='Interval'){
+      const metres=parseFloat(cur.curR)||0;
+      if(!metres)return;
+      const isPR=cur.atb===null||metres>cur.atb;
+      const newLogged=[...cur.logged,{kg:0,reps:metres,rpe:null,w:'',r:cur.curR}];
+      setExs(p=>p.map((e,i)=>i!==ei?e:{...e,
+        atb:isPR?metres:e.atb,
+        logged:newLogged,
+        curR:''}));
+      if(isPR)setPr({name:cur.name,metres});
+      startRest(cur.rest||180);
+      return;
+    }
     const kg=parseFloat(cur.curW)||0;
     const reps=parseFloat(cur.curR)||0;
     if(!reps)return; // need at least reps
@@ -452,6 +469,9 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
     onSaveSwap(skKey(cur.ei),nm);
     setExs(p=>p.map((e,i)=>{
       if(i!==ei)return e;
+      if(e.type==='Interval'){
+        return{...e,name:nm,pb:prevBestMetres(hist,sess.label,nm),atb:allBestMetres(hist,nm),pn:lastNotes(hist,sess.label,nm)};
+      }
       const pb=prevBest(hist,sess.label,nm);
       return{...e,name:nm,pb,atb:allBest(hist,nm),pn:lastNotes(hist,sess.label,nm),
         curW:pb!=null?String(toDisp(pb,unit)):e.curW};
@@ -509,6 +529,10 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
             {cur.type==='Plyo'||cur.type==='Distance'?<>
               <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.type==='Distance'?cur.metres+' metres':cur.reps+' reps'} &bull; {cur.rest}s rest</div>
               {cur.cue&&<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.cue}</div>}
+            </>:cur.type==='Interval'?<>
+              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {fmtTime(cur.workS)} hard &bull; {fmtTime(cur.rest)} easy</div>
+              {cur.cue&&<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.cue}</div>}
+              {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{cur.pb}m</span></div>}
             </>:<>
               <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
               {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{toDisp(cur.pb,unit)}{unit}</span></div>}
@@ -522,7 +546,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
         </div>
         {/* Banners */}
         {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(125,211,252,0.15)',border:'1px solid rgba(125,211,252,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10}}>
-          <span>&#127942;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:'#7DD3FC'}}>New PR &mdash; {toDisp(pr.kg,unit)}{unit} on {pr.name}!</div>
+          <span>&#127942;</span><div style={{flex:1,fontSize:13,fontWeight:700,color:'#7DD3FC'}}>New PR &mdash; {pr.metres!=null?pr.metres+'m':toDisp(pr.kg,unit)+unit} on {pr.name}!</div>
           <button onClick={()=>setPr(null)} style={{background:'transparent',border:'none',color:'#555',fontSize:16,cursor:'pointer',padding:0}}>&#10005;</button>
         </div>}
 
@@ -536,8 +560,8 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           {cur.logged.map((s,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'rgba(125,211,252,0.08)',border:'1px solid rgba(125,211,252,0.2)',borderRadius:8,marginBottom:6}}>
             <span style={{fontSize:16,color:G}}>&#10003;</span>
             <div style={{flex:1,fontSize:14,color:'#888'}}>Set {i+1}</div>
-            {cur.type!=='Plyo'&&cur.type!=='Distance'&&<div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>}
-            <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{cur.type==='Distance'?s.r+' metres':s.r+' reps'}</div>
+            {cur.type!=='Plyo'&&cur.type!=='Distance'&&cur.type!=='Interval'&&<div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>}
+            <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{cur.type==='Distance'||cur.type==='Interval'?s.r+' metres':s.r+' reps'}</div>
             {s.rpe&&<div style={{fontSize:12,color:'#555'}}>RPE {s.rpe}</div>}
           </div>)}
         </div>}
@@ -546,7 +570,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
         {lEx&&lEx.sets&&lEx.sets.length>0&&!allSetsDone&&<div style={{background:'#111',borderLeft:'2px solid #2A2A2A',borderRadius:8,padding:'10px 14px',marginBottom:16}}>
           <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Last Session</div>
           {lEx.sets.map((s,i)=><div key={i} style={{display:'flex',gap:12,fontSize:13,color:'#555',lineHeight:1.8}}>
-            <span>Set {i+1}</span><span>{cur.type==='Plyo'?(s.reps+' reps'):cur.type==='Distance'?(s.reps+' metres'):(toDisp(s.kg,unit)+unit+' \u00d7 '+s.reps)}</span>
+            <span>Set {i+1}</span><span>{cur.type==='Plyo'?(s.reps+' reps'):(cur.type==='Distance'||cur.type==='Interval')?(s.reps+' metres'):(toDisp(s.kg,unit)+unit+' \u00d7 '+s.reps)}</span>
           </div>)}
         </div>}
 
@@ -560,6 +584,19 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
               <div style={{fontSize:36,fontWeight:800,color:'#fff'}}>{cur.type==='Distance'?cur.metres:cur.reps}</div>
               <div style={{fontSize:13,color:'#555',fontWeight:600,marginTop:2}}>{cur.type==='Distance'?'target metres':'target reps'}</div>
             </div>
+          :cur.type==='Interval'?
+          <>
+            <div style={{background:'#111',border:'1px solid #2A2A2A',borderRadius:10,padding:'22px 16px',marginBottom:16,textAlign:'center'}}>
+              <div style={{fontSize:36,fontWeight:800,color:'#fff'}}>{fmtTime(cur.workS)}</div>
+              <div style={{fontSize:13,color:'#555',fontWeight:600,marginTop:2}}>hard effort — log metres covered after</div>
+            </div>
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>Metres covered</div>
+              <input value={cur.curR} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curR:e.target.value}))}
+                type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0"
+                style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
+            </div>
+          </>
           :
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
             {/* Weight */}
