@@ -61,6 +61,7 @@ const ALT={
 };
 
 const ex=(n,s,lo,hi,t,r)=>({name:n,sets:s,rLo:lo,rHi:hi,type:t,rpe:r});
+const plyo=(n,s,reps,rest,cue)=>({name:n,sets:s,reps:reps,rest:rest,type:'Plyo',cue:cue||''});
 const PROGS={
   ppl:{id:'ppl',name:'Push / Pull / Legs',short:'PPL',freq:'6x / week',sessions:[
     {key:'push',label:'Push',exercises:[ex('Flat Barbell Bench Press',3,6,10,'Compound',8),ex('Incline Dumbbell Press',2,8,12,'Compound',8),ex('Standing Overhead Press',3,8,10,'Compound',8),ex('Dumbbell Lateral Raise',4,12,15,'Isolation',10),ex('Cable Overhead Tricep Extension',3,10,12,'Isolation',10),ex('Cable Pushdown (Rope)',2,12,15,'Isolation',10)]},
@@ -68,7 +69,29 @@ const PROGS={
     {key:'legs',label:'Legs',exercises:[ex('Barbell Back Squat',3,5,8,'Compound',8),ex('Romanian Deadlift',3,8,12,'Compound',8),ex('Hip Thrust',2,10,15,'Isolation',10),ex('Leg Extension Machine',3,12,15,'Isolation',10),ex('Seated Leg Curl',3,10,12,'Isolation',10)]}]},
   ul:{id:'ul',name:'Upper / Lower',short:'U/L',freq:'4x / week',sessions:[
     {key:'upper',label:'Upper',exercises:[ex('Flat Barbell Bench Press',2,6,10,'Compound',8),ex('Bent Over Barbell Row',2,8,10,'Compound',8),ex('Dumbbell Lateral Raise',4,12,15,'Isolation',10),ex('V-Bar Lat Pulldown',3,8,12,'Compound',8),ex('Cable Chest Fly',3,12,15,'Isolation',10),ex('Cable Overhead Tricep Extension',2,10,12,'Isolation',10),ex('Barbell Curl',2,10,12,'Isolation',10)]},
-    {key:'lower',label:'Lower',exercises:[ex('Barbell Back Squat',3,5,8,'Compound',8),ex('Romanian Deadlift',3,8,12,'Compound',8),ex('Hip Thrust',2,10,15,'Isolation',10),ex('Leg Extension Machine',3,12,15,'Isolation',10),ex('Seated Leg Curl',3,10,12,'Isolation',10)]}]}
+    {key:'lower',label:'Lower',exercises:[ex('Barbell Back Squat',3,5,8,'Compound',8),ex('Romanian Deadlift',3,8,12,'Compound',8),ex('Hip Thrust',2,10,15,'Isolation',10),ex('Leg Extension Machine',3,12,15,'Isolation',10),ex('Seated Leg Curl',3,10,12,'Isolation',10)]}]},
+  plyo:{id:'plyo',name:'Plyometrics',short:'Plyo',freq:'3x / week',sessions:[
+    {key:'lower_power',label:'Lower Power',exercises:[
+      plyo('Pogo Hops',3,15,90,'Calf/ankle dominant — stiff-legged, quick ground contact'),
+      plyo('Tuck Jumps',4,6,120,'Quad dominant — drive knees up, land soft'),
+      plyo('Forward Hurdle Hops',4,6,120,'Glute/hamstring dominant — hop forward over an imaginary line or low object, both legs')
+    ]},
+    {key:'upper_power',label:'Upper Power',exercises:[
+      plyo('Plyo Push-Ups',4,6,120,'Explosive press, hands leave the floor'),
+      plyo('Medicine Ball Chest Throw',4,8,90,'Explosive throw against a wall or to a partner'),
+      plyo('Medicine Ball Overhead Slam',4,8,90,'Full-body explosive extension')
+    ]},
+    {key:'reactive_strength',label:'Reactive Strength',exercises:[
+      plyo('Depth Jumps (low step)',4,5,150,'Step off a low box/step, minimise ground contact time on landing'),
+      plyo('Lateral Bounds',3,8,90,'Side-to-side bound, stick each landing'),
+      plyo('Broad Jumps',4,5,120,'Max horizontal distance, stick the landing')
+    ]}
+  ]},
+  hyrox:{id:'hyrox',name:'HYROX',short:'HYROX',freq:'3x / week',sessions:[
+    {key:'compromised_running',label:'Compromised Running',exercises:[ex('Placeholder — build with Ethan',3,8,12,'Compound',8)]},
+    {key:'strength_stations',label:'Strength Stations',exercises:[ex('Placeholder — build with Ethan',3,8,12,'Compound',8)]},
+    {key:'engine_intervals',label:'Engine Intervals',exercises:[ex('Placeholder — build with Ethan',3,8,12,'Compound',8)]}
+  ]}
 };
 
 const toDisp=(kg,u)=>u==='kg'?Math.round(kg*10)/10:Math.round(kg/0.4536*10)/10;
@@ -176,7 +199,8 @@ function Home({planId,hist,streak,onStart,onSettings}){
   const active=sel||rec;
   const sess=prog.sessions.find(s=>s.label===active)||prog.sessions[0];
   const tot=sess.exercises.reduce((a,e)=>a+e.sets,0);
-  const est=Math.round((tot*3.2+sess.exercises.length*1.2)/5)*5;
+  const isPlyoSess=sess.exercises.length>0&&sess.exercises[0].type==='Plyo';
+  const est=isPlyoSess?Math.round((sess.exercises.reduce((a,e)=>a+e.sets*(e.rest||90),0)/60+5)/5)*5:Math.round((tot*3.2+sess.exercises.length*1.2)/5)*5;
   return(
     <FS scroll>
       <div style={{padding:'60px 20px 20px'}}>
@@ -234,7 +258,8 @@ function Programmes({planId,onStart}){
         </div>
         {prog.sessions.map((s,i)=>{
           const tot=s.exercises.reduce((a,e)=>a+e.sets,0);
-          const est=Math.round((tot*3.2+s.exercises.length*1.2)/5)*5;
+          const isPlyoSess=s.exercises.length>0&&s.exercises[0].type==='Plyo';
+          const est=isPlyoSess?Math.round((s.exercises.reduce((a,e)=>a+e.sets*(e.rest||90),0)/60+5)/5)*5:Math.round((tot*3.2+s.exercises.length*1.2)/5)*5;
           return<Card key={i} style={{marginBottom:10,cursor:'pointer'}} ch={<>
             <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{s.label}</div>
             <div style={{fontSize:12,color:'#9CA3AF'}}>{s.exercises.length} exercises &bull; {tot} sets &bull; ~{est} min</div>
@@ -268,12 +293,17 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
           return<Card key={i} style={{marginBottom:10}} ch={<>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
               <div style={{fontSize:14,fontWeight:700,color:swapped?A:'#fff',flex:1}}>{name}</div>
-              {le&&le.sets.some(s=>s.reps>=e.rHi)&&<span style={{color:A,fontSize:12}}>&#8593;</span>}
-              <Btn onClick={()=>setSwapIdx(swapIdx===i?null:i)} ch="&#8644;"
-                style={{width:26,height:26,borderRadius:'50%',background:'#1E1E1E',border:'1px solid '+B,color:'#9CA3AF',fontSize:13}}/>
+              {e.type!=='Plyo'&&le&&le.sets.some(s=>s.reps>=e.rHi)&&<span style={{color:A,fontSize:12}}>&#8593;</span>}
+              {e.type!=='Plyo'&&<Btn onClick={()=>setSwapIdx(swapIdx===i?null:i)} ch="&#8644;"
+                style={{width:26,height:26,borderRadius:'50%',background:'#1E1E1E',border:'1px solid '+B,color:'#9CA3AF',fontSize:13}}/>}
             </div>
-            <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.rLo}&ndash;{e.rHi} reps</div>
-            <div style={{fontSize:11,color:e.rpe>=9?A:'#6B7280'}}>RPE {e.rpe} &mdash; {10-e.rpe} reps left</div>
+            {e.type==='Plyo'?<>
+              <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.reps} reps</div>
+              <div style={{fontSize:11,color:'#6B7280'}}>{e.cue}</div>
+            </>:<>
+              <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.rLo}&ndash;{e.rHi} reps</div>
+              <div style={{fontSize:11,color:e.rpe>=9?A:'#6B7280'}}>RPE {e.rpe} &mdash; {10-e.rpe} reps left</div>
+            </>}
             {swapped&&<Btn onClick={()=>onSaveSwap(sk(i),null)} ch={'Reset to '+e.name}
               style={{marginTop:7,fontSize:11,color:'#6B7280',border:'1px dashed '+B,borderRadius:6,padding:'3px 8px',height:'auto',width:'auto'}}/>}
           </>}/>;
@@ -307,6 +337,11 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   const skKey=(i)=>planId+'_'+sess.label+'_'+i;
   const buildEx=()=>sess.exercises.map((e,i)=>{
     const name=(swaps&&swaps[skKey(i)])||e.name;
+    if(e.type==='Plyo'){
+      return{...e,name,base:e.name,ei:i,pb:null,atb:null,
+        pn:lastNotes(hist,sess.label,name),notes:'',
+        logged:[]};
+    }
     const pb=prevBest(hist,sess.label,name);
     return{...e,name,base:e.name,ei:i,pb,atb:allBest(hist,name),
       pn:lastNotes(hist,sess.label,name),notes:'',
@@ -344,6 +379,12 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   function stopRest(){if(tmr.current)clearInterval(tmr.current);setSecs(0);setTotSecs(0);}
 
   function logSet(){
+    if(cur.type==='Plyo'){
+      const newLogged=[...cur.logged,{kg:0,reps:cur.reps,rpe:null,w:'',r:String(cur.reps)}];
+      setExs(p=>p.map((e,i)=>i!==ei?e:{...e,logged:newLogged}));
+      startRest(cur.rest||90);
+      return;
+    }
     const kg=parseFloat(cur.curW)||0;
     const reps=parseFloat(cur.curR)||0;
     if(!reps)return; // need at least reps
@@ -381,7 +422,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
       e.logged.forEach(s=>{const kg=s.kg||0;vol+=kg*(s.reps||0);
         if(kg>0&&(e.atb===null||kg>e.atb)&&!prs.find(p=>p.name===e.name))prs.push({name:e.name,weight:toDisp(kg,unit)});});
       if(e.hitTop)toIncrease.push(e.name);
-      return{name:e.name,rHi:e.rHi,notes:e.notes||'',
+      return{name:e.name,rHi:e.rHi||null,type:e.type,notes:e.notes||'',
         sets:e.logged.map(s=>({kg:s.kg||0,reps:s.reps||0,rpe:s.rpe}))};
     }).filter(e=>e.sets.length||e.notes);
     onDone({planId,label:sess.label,date:new Date().toISOString(),vol:Math.round(vol),exercises:data},prs,Math.round((Date.now()-t0.current)/60000),toIncrease);
@@ -422,14 +463,19 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:A,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{cur.type}</div>
             <div style={{fontSize:22,fontWeight:800,lineHeight:1.2,marginBottom:4}}>{cur.name}</div>
-            <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
-            {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{toDisp(cur.pb,unit)}{unit}</span></div>}
-            {lEx&&lEx.sets&&lEx.sets.some(s=>s.reps>=cur.rHi)&&<div style={{fontSize:12,color:A,fontWeight:600,marginTop:4}}>&#8593; You maxed reps last time — add weight today</div>}
+            {cur.type==='Plyo'?<>
+              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.reps} reps &bull; {cur.rest}s rest</div>
+              {cur.cue&&<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.cue}</div>}
+            </>:<>
+              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
+              {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{toDisp(cur.pb,unit)}{unit}</span></div>}
+              {lEx&&lEx.sets&&lEx.sets.some(s=>s.reps>=cur.rHi)&&<div style={{fontSize:12,color:A,fontWeight:600,marginTop:4}}>&#8593; You maxed reps last time — add weight today</div>}
+            </>}
           </div>
-          <button onClick={()=>setShowSwap(true)}
+          {cur.type!=='Plyo'&&<button onClick={()=>setShowSwap(true)}
             style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#666',fontSize:12,padding:'7px 10px',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
             &#8644; Swap
-          </button>
+          </button>}
         </div>
         {/* Banners */}
         {pr&&<div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(125,211,252,0.15)',border:'1px solid rgba(125,211,252,0.4)',borderRadius:8,padding:'8px 12px',marginTop:10}}>
@@ -447,7 +493,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           {cur.logged.map((s,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'rgba(125,211,252,0.08)',border:'1px solid rgba(125,211,252,0.2)',borderRadius:8,marginBottom:6}}>
             <span style={{fontSize:16,color:G}}>&#10003;</span>
             <div style={{flex:1,fontSize:14,color:'#888'}}>Set {i+1}</div>
-            <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>
+            {cur.type!=='Plyo'&&<div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>}
             <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.r} reps</div>
             {s.rpe&&<div style={{fontSize:12,color:'#555'}}>RPE {s.rpe}</div>}
           </div>)}
@@ -457,7 +503,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
         {lEx&&lEx.sets&&lEx.sets.length>0&&!allSetsDone&&<div style={{background:'#111',borderLeft:'2px solid #2A2A2A',borderRadius:8,padding:'10px 14px',marginBottom:16}}>
           <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Last Session</div>
           {lEx.sets.map((s,i)=><div key={i} style={{display:'flex',gap:12,fontSize:13,color:'#555',lineHeight:1.8}}>
-            <span>Set {i+1}</span><span>{toDisp(s.kg,unit)}{unit} &times; {s.reps}</span>
+            <span>Set {i+1}</span><span>{cur.type==='Plyo'?(s.reps+' reps'):(toDisp(s.kg,unit)+unit+' \u00d7 '+s.reps)}</span>
           </div>)}
         </div>}
 
@@ -466,6 +512,12 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
           <div style={{fontSize:11,color:A,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>
             Set {setsDone+1} of {setsTotal}
           </div>
+          {cur.type==='Plyo'?
+            <div style={{background:'#111',border:'1px solid #2A2A2A',borderRadius:10,padding:'22px 16px',marginBottom:16,textAlign:'center'}}>
+              <div style={{fontSize:36,fontWeight:800,color:'#fff'}}>{cur.reps}</div>
+              <div style={{fontSize:13,color:'#555',fontWeight:600,marginTop:2}}>target reps</div>
+            </div>
+          :
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
             {/* Weight */}
             <div>
@@ -488,7 +540,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
                 type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="–"
                 style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
             </div>
-          </div>
+          </div>}
         </>}
 
         {/* Rest timer */}
@@ -572,6 +624,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
 function WorkoutComplete({entry,unit,prs,duration,toIncrease,onHome}){
   const vol=toDisp(entry.vol||0,unit);
   const sets=entry.exercises.reduce((a,e)=>a+e.sets.length,0);
+  const isPlyo=!entry.vol;
   return(
     <FS col>
       <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 24px',textAlign:'center'}}>
@@ -579,7 +632,7 @@ function WorkoutComplete({entry,unit,prs,duration,toIncrease,onHome}){
         <div style={{fontSize:24,fontWeight:800,marginBottom:4}}>Session Complete!</div>
         <div style={{fontSize:14,color:'#9CA3AF',marginBottom:22}}>{entry.label}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,width:'100%',marginBottom:16}}>
-          {[['&#128230;',vol+' '+unit,'Volume'],['&#9989;',String(sets),'Sets'],['&#128170;',String(entry.exercises.length),'Exercises'],['&#9201;',duration+' min','Duration']].map(([ic,v,l],i)=>(
+          {(isPlyo?[['&#9989;',String(sets),'Sets'],['&#128170;',String(entry.exercises.length),'Exercises'],['&#9201;',duration+' min','Duration']]:[['&#128230;',vol+' '+unit,'Volume'],['&#9989;',String(sets),'Sets'],['&#128170;',String(entry.exercises.length),'Exercises'],['&#9201;',duration+' min','Duration']]).map(([ic,v,l],i)=>(
             <div key={i} style={{background:'#161616',border:'1px solid '+B,borderRadius:12,padding:'12px 10px'}}>
               <div style={{fontSize:18,marginBottom:3}} dangerouslySetInnerHTML={{__html:ic}}/>
               <div style={{fontSize:16,fontWeight:800,color:A}}>{v}</div>
@@ -612,12 +665,12 @@ function Progress({hist,unit}){
         {hist.map((h,i)=><Card key={i} style={{marginBottom:10,cursor:'pointer'}} onClick={()=>setOpen(open===i?null:i)} ch={<>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
             <div><div style={{fontSize:14,fontWeight:700,marginBottom:2}}>{h.label}</div><div style={{fontSize:12,color:'#9CA3AF'}}>{fmtDate(h.date)}</div></div>
-            <div style={{textAlign:'right'}}><div style={{fontSize:13,fontWeight:800,color:A}}>{toDisp(h.vol||0,unit)} {unit}</div><div style={{fontSize:10,color:'#6B7280'}}>volume</div></div>
+            <div style={{textAlign:'right'}}>{h.vol?<><div style={{fontSize:13,fontWeight:800,color:A}}>{toDisp(h.vol,unit)} {unit}</div><div style={{fontSize:10,color:'#6B7280'}}>volume</div></>:<><div style={{fontSize:13,fontWeight:800,color:A}}>{h.exercises?h.exercises.reduce((a,e)=>a+e.sets.length,0):0}</div><div style={{fontSize:10,color:'#6B7280'}}>sets</div></>}</div>
           </div>
           {open===i&&h.exercises&&<div style={{marginTop:10,paddingTop:10,borderTop:'1px solid '+B,display:'flex',flexDirection:'column',gap:7}}>
             {h.exercises.map((e,j)=><div key={j}>
               <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>{e.name}</div>
-              <div style={{fontSize:11,color:'#9CA3AF'}}>{e.sets.map((s,k)=>'Set '+(k+1)+': '+toDisp(s.kg,unit)+unit+' x'+s.reps+(s.rpe?' @'+s.rpe:'')).join(' \u00b7 ')}</div>
+              <div style={{fontSize:11,color:'#9CA3AF'}}>{e.sets.map((s,k)=>'Set '+(k+1)+': '+(s.kg?toDisp(s.kg,unit)+unit+' x'+s.reps:s.reps+' reps')+(s.rpe?' @'+s.rpe:'')).join(' \u00b7 ')}</div>
               {e.notes&&<div style={{fontSize:11,color:'#6B7280',marginTop:2,fontStyle:'italic'}}>&#128221; {e.notes}</div>}
             </div>)}
           </div>}
