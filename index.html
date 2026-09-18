@@ -316,7 +316,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
                 style={{width:26,height:26,borderRadius:'50%',background:'#1E1E1E',border:'1px solid '+B,color:'#9CA3AF',fontSize:13}}/>}
             </div>
             {e.type==='Plyo'||e.type==='Distance'?<>
-              <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.type==='Distance'?e.metres+'m':e.reps+' reps'}</div>
+              <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.type==='Distance'?e.metres+' metres':e.reps+' reps'}</div>
               <div style={{fontSize:11,color:'#6B7280'}}>{e.cue}</div>
             </>:<>
               <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.rLo}&ndash;{e.rHi} reps</div>
@@ -488,7 +488,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
             <div style={{fontSize:11,color:A,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{cur.type}</div>
             <div style={{fontSize:22,fontWeight:800,lineHeight:1.2,marginBottom:4}}>{cur.name}</div>
             {cur.type==='Plyo'||cur.type==='Distance'?<>
-              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.type==='Distance'?cur.metres+'m':cur.reps+' reps'} &bull; {cur.rest}s rest</div>
+              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.type==='Distance'?cur.metres+' metres':cur.reps+' reps'} &bull; {cur.rest}s rest</div>
               {cur.cue&&<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.cue}</div>}
             </>:<>
               <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
@@ -518,7 +518,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
             <span style={{fontSize:16,color:G}}>&#10003;</span>
             <div style={{flex:1,fontSize:14,color:'#888'}}>Set {i+1}</div>
             {cur.type!=='Plyo'&&cur.type!=='Distance'&&<div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>}
-            <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{cur.type==='Distance'?s.r+'m':s.r+' reps'}</div>
+            <div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{cur.type==='Distance'?s.r+' metres':s.r+' reps'}</div>
             {s.rpe&&<div style={{fontSize:12,color:'#555'}}>RPE {s.rpe}</div>}
           </div>)}
         </div>}
@@ -527,7 +527,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
         {lEx&&lEx.sets&&lEx.sets.length>0&&!allSetsDone&&<div style={{background:'#111',borderLeft:'2px solid #2A2A2A',borderRadius:8,padding:'10px 14px',marginBottom:16}}>
           <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Last Session</div>
           {lEx.sets.map((s,i)=><div key={i} style={{display:'flex',gap:12,fontSize:13,color:'#555',lineHeight:1.8}}>
-            <span>Set {i+1}</span><span>{cur.type==='Plyo'?(s.reps+' reps'):cur.type==='Distance'?(s.reps+'m'):(toDisp(s.kg,unit)+unit+' \u00d7 '+s.reps)}</span>
+            <span>Set {i+1}</span><span>{cur.type==='Plyo'?(s.reps+' reps'):cur.type==='Distance'?(s.reps+' metres'):(toDisp(s.kg,unit)+unit+' \u00d7 '+s.reps)}</span>
           </div>)}
         </div>}
 
