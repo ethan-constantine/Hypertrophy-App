@@ -60,7 +60,7 @@ const ALT={
   'Cable Donkey Kick':['Machine Glute Kickback','Hip Thrust','Banded Glute Kickback'],
 };
 
-const ex=(n,s,lo,hi,t,r)=>({name:n,sets:s,rLo:lo,rHi:hi,type:t,rpe:r});
+const ex=(n,s,lo,hi,t,r,cue)=>({name:n,sets:s,rLo:lo,rHi:hi,type:t,rpe:r,cue:cue||''});
 const plyo=(n,s,reps,rest,cue)=>({name:n,sets:s,reps:reps,rest:rest,type:'Plyo',cue:cue||''});
 const dist=(n,s,metres,rest,cue)=>({name:n,sets:s,metres:metres,rest:rest,type:'Distance',cue:cue||''});
 const PROGS={
@@ -96,14 +96,14 @@ const PROGS={
       ex('Pendlay Row',3,3,5,'Compound',9)
     ]},
     {key:'station_power',label:'Station Power',exercises:[
-      dist('Sled Push',3,50,45,'Low drive position, short powerful steps'),
-      dist('Sled Pull',3,50,45,'Hand-over-hand, lean back, drive with legs'),
-      dist('Farmers Carry',3,200,45,'Tall posture, brace core, controlled steps'),
+      dist('Sled Push',3,50,45,'Low drive position, short powerful steps. Open: 152kg men / 102kg women (incl. sled)'),
+      dist('Sled Pull',3,50,45,'Hand-over-hand, lean back, drive with legs. Open: 103kg men / 78kg women (incl. sled)'),
+      dist('Farmers Carry',3,200,45,'Tall posture, brace core, controlled steps. Open: 24kg/hand men / 16kg/hand women'),
       dist('Burpee Broad Jumps',3,80,45,'Chest to floor, jump forward for distance'),
       dist('SkiErg',3,1000,45,'Drive down with lats, hinge from hips'),
       dist('Rowing',3,1000,45,'Legs-back-arms, controlled slide'),
-      dist('Sandbag Lunges',3,100,45,'Sandbag on back, upright torso, full step'),
-      ex('Wall Balls',3,12,15,'Compound',8)
+      dist('Sandbag Lunges',3,100,45,'Sandbag on back, upright torso, full step. Open: 20kg men / 10kg women'),
+      ex('Wall Balls',3,12,15,'Compound',8,'Open: 6kg men / 4kg women, 3m target men / 2.7m target women')
     ]},
     {key:'compromised_1',label:'Compromised — Push/Pull',exercises:[ex('Placeholder — build with Ethan',3,8,12,'Compound',8)]},
     {key:'compromised_2',label:'Compromised — Full Body',exercises:[ex('Placeholder — build with Ethan',3,8,12,'Compound',8)]},
@@ -321,6 +321,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
             </>:<>
               <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.rLo}&ndash;{e.rHi} reps</div>
               <div style={{fontSize:11,color:e.rpe>=9?A:'#6B7280'}}>RPE {e.rpe} &mdash; {10-e.rpe} reps left</div>
+              {e.cue&&<div style={{fontSize:11,color:'#6B7280',marginTop:2}}>{e.cue}</div>}
             </>}
             {swapped&&<Btn onClick={()=>onSaveSwap(sk(i),null)} ch={'Reset to '+e.name}
               style={{marginTop:7,fontSize:11,color:'#6B7280',border:'1px dashed '+B,borderRadius:6,padding:'3px 8px',height:'auto',width:'auto'}}/>}
