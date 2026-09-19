@@ -326,7 +326,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
               <div style={{fontSize:14,fontWeight:700,color:swapped?A:'#fff',flex:1}}>{name}</div>
               {e.type!=='Plyo'&&e.type!=='Distance'&&le&&le.sets.some(s=>s.reps>=e.rHi)&&<span style={{color:A,fontSize:12}}>&#8593;</span>}
-              {e.type!=='Plyo'&&e.type!=='Distance'&&<Btn onClick={()=>setSwapIdx(swapIdx===i?null:i)} ch="&#8644;"
+              {e.type!=='Plyo'&&e.type!=='Distance'&&ALT[e.name]&&ALT[e.name].length>0&&<Btn onClick={()=>setSwapIdx(swapIdx===i?null:i)} ch="&#8644;"
                 style={{width:26,height:26,borderRadius:'50%',background:'#1E1E1E',border:'1px solid '+B,color:'#9CA3AF',fontSize:13}}/>}
             </div>
             {e.type==='Plyo'||e.type==='Distance'?<>
@@ -562,7 +562,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
               {lEx&&lEx.sets&&lEx.sets.some(s=>s.reps>=cur.rHi)&&<div style={{fontSize:12,color:A,fontWeight:600,marginTop:4}}>&#8593; You maxed reps last time — add weight today</div>}
             </>}
           </div>
-          {cur.type!=='Plyo'&&cur.type!=='Distance'&&<button onClick={()=>setShowSwap(true)}
+          {cur.type!=='Plyo'&&cur.type!=='Distance'&&(cur.name!==cur.base||(ALT[cur.base]&&ALT[cur.base].length>0))&&<button onClick={()=>setShowSwap(true)}
             style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#666',fontSize:12,padding:'7px 10px',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
             &#8644; Swap
           </button>}
