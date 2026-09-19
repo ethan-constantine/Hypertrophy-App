@@ -415,10 +415,11 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
   const isLastEx=ei===exs.length-1;
   const pct=Math.round(((ei)/exs.length)*100 + (setsDone/setsTotal)*(100/exs.length));
 
-  // Auto stopwatch for Distance-type sets — starts the instant a set becomes active, stops on Log Set
+  // Auto stopwatch for Distance-type sets — starts once rest has ended (or immediately if no rest is active), stops on Log Set
+  const resting=secs>0;
   useEffect(()=>{
     if(workTmr.current)clearInterval(workTmr.current);
-    if(cur.type==='Distance'&&!allSetsDone){
+    if(cur.type==='Distance'&&!allSetsDone&&!resting){
       workT0.current=Date.now();
       setWorkSecs(0);
       workTmr.current=setInterval(()=>setWorkSecs(s=>s+1),1000);
@@ -427,7 +428,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
     }
     return ()=>{if(workTmr.current)clearInterval(workTmr.current);};
     // eslint-disable-next-line
-  },[ei,setsDone]);
+  },[ei,setsDone,resting]);
 
   function startRest(s){
     if(tmr.current)clearInterval(tmr.current);
@@ -613,8 +614,8 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
             </div>
           :cur.type==='Distance'?
             <div style={{background:'#111',border:'1px solid #2A2A2A',borderRadius:10,padding:'22px 16px',marginBottom:16,textAlign:'center'}}>
-              <div style={{fontSize:36,fontWeight:800,color:'#fff',fontVariantNumeric:'tabular-nums'}}>{fmtTime(workSecs)}</div>
-              <div style={{fontSize:13,color:'#555',fontWeight:600,marginTop:2}}>timing this set &mdash; {cur.metres} metres</div>
+              <div style={{fontSize:36,fontWeight:800,color:'#fff',fontVariantNumeric:'tabular-nums'}}>{resting?'\u2014':fmtTime(workSecs)}</div>
+              <div style={{fontSize:13,color:'#555',fontWeight:600,marginTop:2}}>{resting?'resting \u2014 timer starts when you go':'timing this set \u2014 '+cur.metres+' metres'}</div>
             </div>
           :cur.type==='Interval'?
           <>
