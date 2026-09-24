@@ -62,7 +62,7 @@ const ALT={
   'VO2 Max Intervals — Row':['VO2 Max Intervals — Run'],
 };
 
-const ex=(n,s,lo,hi,t,r,cue)=>({name:n,sets:s,rLo:lo,rHi:hi,type:t,rpe:r,cue:cue||''});
+const ex=(n,s,lo,hi,t,r,cue,rest)=>({name:n,sets:s,rLo:lo,rHi:hi,type:t,rpe:r,cue:cue||'',rest});
 const plyo=(n,s,reps,rest,cue)=>({name:n,sets:s,reps:reps,rest:rest,type:'Plyo',cue:cue||''});
 const dist=(n,s,metres,rest,cue)=>({name:n,sets:s,metres:metres,rest:rest,type:'Distance',cue:cue||''});
 const interval=(n,s,workS,rest,cue)=>({name:n,sets:s,workS:workS,rest:rest,type:'Interval',cue:cue||''});
@@ -92,11 +92,11 @@ const PROGS={
     ]}
   ]},
   hyrox:{id:'hyrox',name:'HYROX',short:'HYROX',freq:'4x / week',sessions:[
-    {key:'strength_base',label:'Strength Base',exercises:[
-      ex('Back Squat',3,3,5,'Compound',9),
-      ex('Conventional Deadlift',2,3,5,'Compound',9),
-      ex('Bench Press',3,3,5,'Compound',9),
-      ex('Pendlay Row',3,3,5,'Compound',9)
+    {key:'strength_base',label:'Strength Base',noRestBetweenExercises:true,exercises:[
+      ex('Back Squat',3,3,5,'Compound',9,'',180),
+      ex('Conventional Deadlift',2,3,5,'Compound',9,'',180),
+      ex('Bench Press',3,3,5,'Compound',9,'',180),
+      ex('Pendlay Row',3,3,5,'Compound',9,'',180)
     ]},
     {key:'compromised_1',label:'Compromised — Stations A',exercises:[
       dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
@@ -477,7 +477,10 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
       curW:cur.curW,
       curR:'',curRpe:''}));
     if(isPR)setPr({name:cur.name,kg});
-    startRest(cur.type==='Compound'?120:60);
+    const willBeLastSet=(setsDone+1)>=setsTotal;
+    if(!(sess.noRestBetweenExercises&&willBeLastSet)){
+      startRest(cur.rest!=null?cur.rest:(cur.type==='Compound'?120:60));
+    }
   }
 
   function nextExercise(){
