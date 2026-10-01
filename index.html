@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0D1117;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
@@ -26,6 +27,8 @@ textarea{resize:none}
 <body><div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useRef}=React;
+
+const sb=supabase.createClient('https://prsyzlykkyjdprbiufax.supabase.co','sb_publishable_EqciJCpDuW9Im21ZX2Ak_A_8hLHGbtx');
 
 const A='#38BDF8',G='#7DD3FC',R='#F87171',S='#161B22',B='#293241';
 const K={ob:'cf.ob',nm:'cf.nm',ut:'cf.ut',pl:'cf.pl',hi:'cf.hi',st:'cf.st',cl:'cf.cl',nu:'cf.nu',nr:'cf.nr',sw:'cf.sw'};
@@ -167,6 +170,56 @@ const FS=({children,col,scroll,style})=>(
     {children}
   </div>
 );
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function Auth(){
+  const [mode,setMode]=useState('signin'); // 'signin' | 'signup'
+  const [email,setEmail]=useState('');
+  const [pw,setPw]=useState('');
+  const [err,setErr]=useState('');
+  const [msg,setMsg]=useState('');
+  const [busy,setBusy]=useState(false);
+
+  async function submit(){
+    setErr('');setMsg('');
+    const em=email.trim();
+    if(!em||!pw){setErr('Enter your email and password');return;}
+    if(pw.length<6){setErr('Password must be at least 6 characters');return;}
+    setBusy(true);
+    try{
+      if(mode==='signin'){
+        const {error}=await sb.auth.signInWithPassword({email:em,password:pw});
+        if(error)throw error;
+      }else{
+        const {data,error}=await sb.auth.signUp({email:em,password:pw});
+        if(error)throw error;
+        if(data&&data.user&&!data.session){setMsg('Check your email to confirm your account, then sign in.');setBusy(false);return;}
+      }
+    }catch(e){setErr(e.message||'Something went wrong');}
+    setBusy(false);
+  }
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',flexDirection:'column',justifyContent:'center',padding:'32px 24px'}}>
+      <div style={{textAlign:'center',marginBottom:32}}>
+        <div style={{fontSize:13,fontWeight:800,color:A,letterSpacing:'0.1em',marginBottom:10}}>CONSTANTINE FITNESS</div>
+        <div style={{fontSize:24,fontWeight:800}}>{mode==='signin'?'Welcome back':'Create your account'}</div>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <input value={email} onChange={e=>{setEmail(e.target.value);setErr('');}} placeholder="Email" type="email" autoComplete="email" autoCapitalize="none"
+          style={{height:52,borderRadius:12,background:S,border:'1px solid '+(err?R:B),color:'#fff',fontSize:16,padding:'0 16px'}}/>
+        <input value={pw} onChange={e=>{setPw(e.target.value);setErr('');}} placeholder="Password" type="password" autoComplete={mode==='signin'?'current-password':'new-password'}
+          style={{height:52,borderRadius:12,background:S,border:'1px solid '+(err?R:B),color:'#fff',fontSize:16,padding:'0 16px'}}/>
+        {err&&<div style={{fontSize:13,color:R}}>{err}</div>}
+        {msg&&<div style={{fontSize:13,color:A}}>{msg}</div>}
+      </div>
+      <Btn onClick={submit} dis={busy} ch={busy?'...':mode==='signin'?'Sign In':'Create Account'}
+        style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:17,fontWeight:800,marginTop:20}}/>
+      <Btn onClick={()=>{setMode(mode==='signin'?'signup':'signin');setErr('');setMsg('');}} ch={mode==='signin'?"Don't have an account? Sign up":'Already have an account? Sign in'}
+        style={{width:'100%',height:44,marginTop:12,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>
+    </div>
+  );
+}
 
 // ── ONBOARDING ────────────────────────────────────────────────────────────────
 function Onboarding({onDone}){
@@ -919,7 +972,7 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
   );
 }
 
-function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose}){
+function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose,email,onSignOut}){
   const [nm,setNm]=useState(name);const [u,setU]=useState(unit);const [p,setP]=useState(planId);
   const [showP,setShowP]=useState(false);const [confirm,setConfirm]=useState(null);
   const Pill=({a,on,l})=><Btn on={on} onClick={on} ch={l} style={{flex:1,height:44,borderRadius:10,background:a?A:'transparent',color:a?'#000':'#9CA3AF',border:'1px solid '+B,fontSize:14,fontWeight:700}}/>;
@@ -953,6 +1006,11 @@ function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose}){
             </div>}
           </div>
         </>}/>
+        {email&&<><div style={{fontSize:11,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:8}}>Account</div>
+        <Card style={{marginBottom:14,display:'flex',alignItems:'center',justifyContent:'space-between'}} ch={<>
+          <div style={{fontSize:13,color:'#9CA3AF'}}>{email}</div>
+          <Btn onClick={()=>setConfirm('signout')} ch="Log Out" style={{height:34,padding:'0 12px',borderRadius:8,background:'#1E1E1E',border:'1px solid '+B,color:'#fff',fontSize:12,fontWeight:700}}/>
+        </>}/></>}
         <div style={{fontSize:11,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:8}}>Data</div>
         <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
           <Btn onClick={()=>setConfirm('prog')} ch="Reset Current Programme" style={{width:'100%',height:46,borderRadius:10,background:S,border:'1px solid '+B,color:'#fff',fontSize:13,fontWeight:700}}/>
@@ -963,11 +1021,11 @@ function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose}){
       {confirm&&<>
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:50}}/>
         <div style={{position:'fixed',left:20,right:20,top:'50%',transform:'translateY(-50%)',background:'#161616',border:'1px solid '+B,borderRadius:16,padding:20,zIndex:51}}>
-          <div style={{fontSize:15,fontWeight:800,marginBottom:7}}>{confirm==='all'?'Delete All Data?':'Reset Programme?'}</div>
-          <div style={{fontSize:13,color:'#9CA3AF',lineHeight:1.5,marginBottom:14}}>{confirm==='all'?'Permanently deletes all history, streaks and preferences.':'Deletes all workouts for the current programme.'}</div>
+          <div style={{fontSize:15,fontWeight:800,marginBottom:7}}>{confirm==='all'?'Delete All Data?':confirm==='signout'?'Log Out?':'Reset Programme?'}</div>
+          <div style={{fontSize:13,color:'#9CA3AF',lineHeight:1.5,marginBottom:14}}>{confirm==='all'?'Permanently deletes all history, streaks and preferences.':confirm==='signout'?"You'll need to sign back in to use the app.":'Deletes all workouts for the current programme.'}</div>
           <div style={{display:'flex',gap:8}}>
             <Btn onClick={()=>setConfirm(null)} ch="Cancel" style={{flex:1,height:44,borderRadius:10,background:'transparent',border:'1px solid '+B,color:'#fff',fontSize:13,fontWeight:700}}/>
-            <Btn onClick={()=>{confirm==='all'?onResetAll():onReset(p);setConfirm(null);}} ch={confirm==='all'?'Delete Everything':'Reset'} style={{flex:1,height:44,borderRadius:10,background:'#DC2626',color:'#fff',fontSize:13,fontWeight:700}}/>
+            <Btn onClick={()=>{if(confirm==='all')onResetAll();else if(confirm==='signout')onSignOut();else onReset(p);setConfirm(null);}} ch={confirm==='all'?'Delete Everything':confirm==='signout'?'Log Out':'Reset'} style={{flex:1,height:44,borderRadius:10,background:confirm==='signout'?S:'#DC2626',border:confirm==='signout'?'1px solid '+B:'none',color:'#fff',fontSize:13,fontWeight:700}}/>
           </div>
         </div>
       </>}
@@ -988,6 +1046,7 @@ function Milestone({days,onClose}){
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App(){
   const [ready,setReady]=useState(false);
+  const [authUser,setAuthUser]=useState(undefined); // undefined=checking, null=signed out, object=signed in
   const [ob,setOb]=useState(false);
   const [name,setName]=useState('');
   const [unit,setUnit]=useState('kg');
@@ -1003,6 +1062,12 @@ function App(){
   const [aS,setAS]=useState(null);  // active session {sess, planId}
   const [comp,setComp]=useState(null);
   const [mile,setMile]=useState(null);
+
+  useEffect(()=>{
+    sb.auth.getSession().then(({data})=>setAuthUser(data.session?data.session.user:null));
+    const {data:sub}=sb.auth.onAuthStateChange((_event,session)=>{setAuthUser(session?session.user:null);});
+    return ()=>sub.subscription.unsubscribe();
+  },[]);
 
   useEffect(()=>{
     setOb(ld(K.ob,false));setName(ld(K.nm,''));setUnit(ld(K.ut,'kg'));setPlanId(ld(K.pl,'ppl'));
@@ -1032,7 +1097,8 @@ function App(){
   const showTab=!['session','workout','complete'].includes(screen);
   const TABS=[{id:'home',l:'Home',e:'\uD83C\uDFE0'},{id:'programmes',l:'Plans',e:'\uD83D\uDCCB'},{id:'progress',l:'Log',e:'\uD83D\uDCCA'},{id:'nutrition',l:'Nutrition',e:'\uD83D\uDD25'},{id:'settings',l:'Settings',e:'\u2699\uFE0F'}];
 
-  if(!ready)return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
+  if(!ready||authUser===undefined)return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
+  if(!authUser)return<Auth/>;
   if(!ob)return<Onboarding onDone={({name:n,plan:p,unit:u})=>{setName(n);setPlanId(p);setUnit(u);setOb(true);sv(K.nm,n);sv(K.pl,p);sv(K.ut,u);sv(K.ob,true);}}/>;
 
   return(
@@ -1044,7 +1110,7 @@ function App(){
         {screen==='session'&&aS&&<SessionOverview planId={aS.planId} sess={aS.sess} hist={hist} unit={unit} swaps={swaps} onSaveSwap={saveSwap} onBegin={()=>setScreen('workout')} onBack={()=>{setScreen(tab);setAS(null);}}/>}
         {screen==='progress'&&<Progress hist={hist} unit={unit}/>}
         {screen==='nutrition'&&<Nutrition saved={nutrIn} savedRes={nutrRes} onSave={v=>{setNutrIn(v);sv(K.nu,v);}} onSaveRes={v=>{setNutrRes(v);sv(K.nr,v);}}/>}
-        {screen==='settings'&&<Settings name={name} unit={unit} planId={planId} onSave={savePrefs}
+        {screen==='settings'&&<Settings name={name} unit={unit} planId={planId} onSave={savePrefs} email={authUser&&authUser.email} onSignOut={()=>sb.auth.signOut()}
           onReset={pid=>{const nh=hist.filter(h=>h.planId!==pid);setHist(nh);sv(K.hi,nh);setStreak(s=>({...s,cur:0}));setScreen('home');setTab('home');}}
           onResetAll={()=>{Object.values(K).forEach(k=>{try{localStorage.removeItem(k);}catch{}});setOb(false);setName('');setUnit('kg');setPlanId('ppl');setHist([]);setStreak(DEF_ST);setCel([]);setSwaps({});setNutrIn(null);setNutrRes(null);}}
           onClose={()=>setScreen(tab)}/>}
