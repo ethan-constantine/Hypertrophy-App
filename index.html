@@ -1047,6 +1047,7 @@ function Milestone({days,onClose}){
 function App(){
   const [ready,setReady]=useState(false);
   const [authUser,setAuthUser]=useState(undefined); // undefined=checking, null=signed out, object=signed in
+  const [cloudReady,setCloudReady]=useState(false); // whether we've attempted the Supabase fetch for this user
   const [ob,setOb]=useState(false);
   const [name,setName]=useState('');
   const [unit,setUnit]=useState('kg');
@@ -1077,6 +1078,36 @@ function App(){
     setTimeout(()=>setReady(true),300);
   },[]);
 
+  // Pull this user's saved state from Supabase once we know who they are
+  useEffect(()=>{
+    if(!authUser){setCloudReady(false);return;}
+    let cancelled=false;
+    (async()=>{
+      const {data,error}=await sb.from('app_state').select('data').eq('user_id',authUser.id).maybeSingle();
+      if(cancelled)return;
+      if(!error&&data&&data.data){
+        const d=data.data;
+        setOb(d.ob??false);setName(d.nm??'');setUnit(d.ut??'kg');setPlanId(d.pl??'ppl');
+        setHist(Array.isArray(d.hi)?d.hi:[]);setStreak(d.st?{...DEF_ST,...d.st}:DEF_ST);
+        setCel(Array.isArray(d.cl)?d.cl:[]);setSwaps(d.sw||{});setNutrIn(d.nu??null);setNutrRes(d.nr??null);
+        sv(K.ob,d.ob??false);sv(K.nm,d.nm??'');sv(K.ut,d.ut??'kg');sv(K.pl,d.pl??'ppl');
+        sv(K.hi,d.hi??[]);sv(K.st,d.st??DEF_ST);sv(K.cl,d.cl??[]);sv(K.sw,d.sw??{});sv(K.nu,d.nu??null);sv(K.nr,d.nr??null);
+      }
+      if(!cancelled)setCloudReady(true);
+    })();
+    return ()=>{cancelled=true;};
+  },[authUser]);
+
+  // Push this user's state to Supabase whenever it changes (debounced, batched into one row)
+  useEffect(()=>{
+    if(!authUser||!cloudReady)return;
+    const payload={ob,nm:name,ut:unit,pl:planId,hi:hist,st:streak,cl:cel,sw:swaps,nu:nutrIn,nr:nutrRes};
+    const t=setTimeout(()=>{
+      sb.from('app_state').upsert({user_id:authUser.id,data:payload,updated_at:new Date().toISOString()}).then(({error})=>{if(error)console.error('cloud sync failed',error);});
+    },600);
+    return ()=>clearTimeout(t);
+  },[authUser,cloudReady,ob,name,unit,planId,hist,streak,cel,swaps,nutrIn,nutrRes]);
+
   function savePrefs({name:nm,unit:u,planId:p}){setName(nm);setUnit(u);setPlanId(p);sv(K.nm,nm);sv(K.ut,u);sv(K.pl,p);}
   function saveSwap(key,val){const ns=val!=null?{...swaps,[key]:val}:(()=>{const c={...swaps};delete c[key];return c;})();setSwaps(ns);sv(K.sw,ns);}
 
@@ -1097,7 +1128,7 @@ function App(){
   const showTab=!['session','workout','complete'].includes(screen);
   const TABS=[{id:'home',l:'Home',e:'\uD83C\uDFE0'},{id:'programmes',l:'Plans',e:'\uD83D\uDCCB'},{id:'progress',l:'Log',e:'\uD83D\uDCCA'},{id:'nutrition',l:'Nutrition',e:'\uD83D\uDD25'},{id:'settings',l:'Settings',e:'\u2699\uFE0F'}];
 
-  if(!ready||authUser===undefined)return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
+  if(!ready||authUser===undefined||(authUser&&!cloudReady))return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
   if(!authUser)return<Auth/>;
   if(!ob)return<Onboarding onDone={({name:n,plan:p,unit:u})=>{setName(n);setPlanId(p);setUnit(u);setOb(true);sv(K.nm,n);sv(K.pl,p);sv(K.ut,u);sv(K.ob,true);}}/>;
 
