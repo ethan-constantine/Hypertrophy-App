@@ -173,7 +173,7 @@ const FS=({children,col,scroll,style})=>(
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 function Auth(){
-  const [mode,setMode]=useState('signin'); // 'signin' | 'signup'
+  const [mode,setMode]=useState('signin'); // 'signin' | 'signup' | 'forgot'
   const [email,setEmail]=useState('');
   const [pw,setPw]=useState('');
   const [err,setErr]=useState('');
@@ -183,6 +183,17 @@ function Auth(){
   async function submit(){
     setErr('');setMsg('');
     const em=email.trim();
+    if(mode==='forgot'){
+      if(!em){setErr('Enter your email');return;}
+      setBusy(true);
+      try{
+        const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:window.location.origin+window.location.pathname});
+        if(error)throw error;
+        setMsg('Check your email for a password reset link.');
+      }catch(e){setErr(e.message||'Something went wrong');}
+      setBusy(false);
+      return;
+    }
     if(!em||!pw){setErr('Enter your email and password');return;}
     if(pw.length<6){setErr('Password must be at least 6 characters');return;}
     setBusy(true);
@@ -199,24 +210,68 @@ function Auth(){
     setBusy(false);
   }
 
+  const title=mode==='signin'?'Welcome back':mode==='signup'?'Create your account':'Reset your password';
+
   return(
     <div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',flexDirection:'column',justifyContent:'center',padding:'32px 24px'}}>
       <div style={{textAlign:'center',marginBottom:32}}>
         <div style={{fontSize:13,fontWeight:800,color:A,letterSpacing:'0.1em',marginBottom:10}}>CONSTANTINE FITNESS</div>
-        <div style={{fontSize:24,fontWeight:800}}>{mode==='signin'?'Welcome back':'Create your account'}</div>
+        <div style={{fontSize:24,fontWeight:800}}>{title}</div>
+        {mode==='forgot'&&<div style={{fontSize:13,color:'#9CA3AF',marginTop:8,lineHeight:1.5}}>Enter your email and we'll send you a link to reset your password.</div>}
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:12}}>
         <input value={email} onChange={e=>{setEmail(e.target.value);setErr('');}} placeholder="Email" type="email" autoComplete="email" autoCapitalize="none"
           style={{height:52,borderRadius:12,background:S,border:'1px solid '+(err?R:B),color:'#fff',fontSize:16,padding:'0 16px'}}/>
-        <input value={pw} onChange={e=>{setPw(e.target.value);setErr('');}} placeholder="Password" type="password" autoComplete={mode==='signin'?'current-password':'new-password'}
-          style={{height:52,borderRadius:12,background:S,border:'1px solid '+(err?R:B),color:'#fff',fontSize:16,padding:'0 16px'}}/>
+        {mode!=='forgot'&&<input value={pw} onChange={e=>{setPw(e.target.value);setErr('');}} placeholder="Password" type="password" autoComplete={mode==='signin'?'current-password':'new-password'}
+          style={{height:52,borderRadius:12,background:S,border:'1px solid '+(err?R:B),color:'#fff',fontSize:16,padding:'0 16px'}}/>}
         {err&&<div style={{fontSize:13,color:R}}>{err}</div>}
         {msg&&<div style={{fontSize:13,color:A}}>{msg}</div>}
       </div>
-      <Btn onClick={submit} dis={busy} ch={busy?'...':mode==='signin'?'Sign In':'Create Account'}
+      {mode==='signin'&&<Btn onClick={()=>{setMode('forgot');setErr('');setMsg('');}} ch="Forgot password?" style={{alignSelf:'flex-end',marginTop:10,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>}
+      <Btn onClick={submit} dis={busy} ch={busy?'...':mode==='signin'?'Sign In':mode==='signup'?'Create Account':'Send Reset Link'}
         style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:17,fontWeight:800,marginTop:20}}/>
-      <Btn onClick={()=>{setMode(mode==='signin'?'signup':'signin');setErr('');setMsg('');}} ch={mode==='signin'?"Don't have an account? Sign up":'Already have an account? Sign in'}
-        style={{width:'100%',height:44,marginTop:12,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>
+      {mode==='forgot'
+        ?<Btn onClick={()=>{setMode('signin');setErr('');setMsg('');}} ch="Back to sign in" style={{width:'100%',height:44,marginTop:12,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>
+        :<Btn onClick={()=>{setMode(mode==='signin'?'signup':'signin');setErr('');setMsg('');}} ch={mode==='signin'?"Don't have an account? Sign up":'Already have an account? Sign in'}
+          style={{width:'100%',height:44,marginTop:12,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>}
+    </div>
+  );
+}
+
+// ── RESET PASSWORD ────────────────────────────────────────────────────────────
+function ResetPassword({onDone}){
+  const [pw,setPw]=useState('');
+  const [pw2,setPw2]=useState('');
+  const [err,setErr]=useState('');
+  const [busy,setBusy]=useState(false);
+
+  async function submit(){
+    setErr('');
+    if(pw.length<6){setErr('Password must be at least 6 characters');return;}
+    if(pw!==pw2){setErr('Passwords do not match');return;}
+    setBusy(true);
+    try{
+      const {error}=await sb.auth.updateUser({password:pw});
+      if(error)throw error;
+      onDone();
+    }catch(e){setErr(e.message||'Something went wrong');setBusy(false);}
+  }
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',flexDirection:'column',justifyContent:'center',padding:'32px 24px'}}>
+      <div style={{textAlign:'center',marginBottom:32}}>
+        <div style={{fontSize:13,fontWeight:800,color:A,letterSpacing:'0.1em',marginBottom:10}}>CONSTANTINE FITNESS</div>
+        <div style={{fontSize:24,fontWeight:800}}>Choose a new password</div>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <input value={pw} onChange={e=>{setPw(e.target.value);setErr('');}} placeholder="New password" type="password" autoComplete="new-password"
+          style={{height:52,borderRadius:12,background:S,border:'1px solid '+(err?R:B),color:'#fff',fontSize:16,padding:'0 16px'}}/>
+        <input value={pw2} onChange={e=>{setPw2(e.target.value);setErr('');}} placeholder="Confirm new password" type="password" autoComplete="new-password"
+          style={{height:52,borderRadius:12,background:S,border:'1px solid '+(err?R:B),color:'#fff',fontSize:16,padding:'0 16px'}}/>
+        {err&&<div style={{fontSize:13,color:R}}>{err}</div>}
+      </div>
+      <Btn onClick={submit} dis={busy} ch={busy?'...':'Save New Password'}
+        style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:17,fontWeight:800,marginTop:20}}/>
     </div>
   );
 }
@@ -1048,6 +1103,7 @@ function App(){
   const [ready,setReady]=useState(false);
   const [authUser,setAuthUser]=useState(undefined); // undefined=checking, null=signed out, object=signed in
   const [cloudReady,setCloudReady]=useState(false); // whether we've attempted the Supabase fetch for this user
+  const [recovery,setRecovery]=useState(false); // true when user has arrived via a password-reset link
   const [ob,setOb]=useState(false);
   const [name,setName]=useState('');
   const [unit,setUnit]=useState('kg');
@@ -1066,7 +1122,10 @@ function App(){
 
   useEffect(()=>{
     sb.auth.getSession().then(({data})=>setAuthUser(data.session?data.session.user:null));
-    const {data:sub}=sb.auth.onAuthStateChange((_event,session)=>{setAuthUser(session?session.user:null);});
+    const {data:sub}=sb.auth.onAuthStateChange((event,session)=>{
+      if(event==='PASSWORD_RECOVERY')setRecovery(true);
+      setAuthUser(session?session.user:null);
+    });
     return ()=>sub.subscription.unsubscribe();
   },[]);
 
@@ -1128,7 +1187,8 @@ function App(){
   const showTab=!['session','workout','complete'].includes(screen);
   const TABS=[{id:'home',l:'Home',e:'\uD83C\uDFE0'},{id:'programmes',l:'Plans',e:'\uD83D\uDCCB'},{id:'progress',l:'Log',e:'\uD83D\uDCCA'},{id:'nutrition',l:'Nutrition',e:'\uD83D\uDD25'},{id:'settings',l:'Settings',e:'\u2699\uFE0F'}];
 
-  if(!ready||authUser===undefined||(authUser&&!cloudReady))return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
+  if(!ready||authUser===undefined||(authUser&&!cloudReady&&!recovery))return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
+  if(recovery)return<ResetPassword onDone={()=>setRecovery(false)}/>;
   if(!authUser)return<Auth/>;
   if(!ob)return<Onboarding onDone={({name:n,plan:p,unit:u})=>{setName(n);setPlanId(p);setUnit(u);setOb(true);sv(K.nm,n);sv(K.pl,p);sv(K.ut,u);sv(K.ob,true);}}/>;
 
