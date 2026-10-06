@@ -31,7 +31,7 @@ const {useState,useEffect,useRef}=React;
 const sb=supabase.createClient('https://prsyzlykkyjdprbiufax.supabase.co','sb_publishable_EqciJCpDuW9Im21ZX2Ak_A_8hLHGbtx');
 
 const A='#38BDF8',G='#7DD3FC',R='#F87171',S='#161B22',B='#293241';
-const K={ob:'cf.ob',nm:'cf.nm',ut:'cf.ut',pl:'cf.pl',hi:'cf.hi',st:'cf.st',cl:'cf.cl',nu:'cf.nu',nr:'cf.nr',sw:'cf.sw'};
+const K={ob:'cf.ob',nm:'cf.nm',ut:'cf.ut',pl:'cf.pl',hi:'cf.hi',st:'cf.st',cl:'cf.cl',nu:'cf.nu',nr:'cf.nr',sw:'cf.sw',pr:'cf.pr'};
 const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
 
@@ -63,12 +63,105 @@ const ALT={
   'Cable Donkey Kick':['Machine Glute Kickback','Hip Thrust','Banded Glute Kickback'],
   'VO2 Max Intervals — Run':['VO2 Max Intervals — Row'],
   'VO2 Max Intervals — Row':['VO2 Max Intervals — Run'],
+  'Paused Bench Press':['Close-Grip Bench Press'],
+  'Close-Grip Bench Press':['Paused Bench Press'],
+  'Back Extension':['Good Morning'],
+  'Good Morning':['Back Extension'],
+  'Weighted Plank':['Pallof Press'],
+  'Pallof Press':['Weighted Plank'],
+  'Cable Crunch':['Hanging Leg Raise'],
+  'Hanging Leg Raise':['Cable Crunch'],
 };
 
 const ex=(n,s,lo,hi,t,r,cue,rest)=>({name:n,sets:s,rLo:lo,rHi:hi,type:t,rpe:r,cue:cue||'',rest});
 const plyo=(n,s,reps,rest,cue)=>({name:n,sets:s,reps:reps,rest:rest,type:'Plyo',cue:cue||''});
 const dist=(n,s,metres,rest,cue)=>({name:n,sets:s,metres:metres,rest:rest,type:'Distance',cue:cue||''});
 const interval=(n,s,workS,rest,cue)=>({name:n,sets:s,workS:workS,rest:rest,type:'Interval',cue:cue||''});
+
+// ── POWERLIFTING PEAKING BLOCK (12-week, 4x/week) ───────────────────────────────
+// Research-backed structure: Wk1 testing, Wk2-4 accumulation (65-75%), Wk5 deload,
+// Wk6-8 intensification (77-87%), Wk9-11 peaking (88-94%), Wk12 taper/meet (openers
+// @90%, intensity held, volume cut, accessories dropped). Day4 is a lower-fatigue
+// technique day (paused squat/deficit deadlift) — no extra back squat/deadlift.
+const PL_PHASE_NOTE={
+  'Accumulation':'Accumulation phase — building volume at moderate intensity.',
+  'Deload':'Deload week — reduced volume and intensity. Let fatigue dissipate before intensity climbs.',
+  'Intensification':'Intensification phase — load climbing, volume easing off.',
+  'Peaking':'Peaking phase — low volume, high intensity. Stay sharp on technique.',
+  'Taper / Meet Week':'Meet-week opener practice — confident, crisp singles. No accessories this week — rest fully into the meet.',
+};
+const PL_WEEKS=[
+  {week:2,phase:'Accumulation',mainPct:65,mainSets:5,repLo:5,repHi:5,mainRpe:7,mainRest:150,d4Pct:55,d4Sets:3,d4RepLo:4,d4RepHi:5,d4Rpe:6,d4Rest:150,accSets:3,accRest:75,hasDay4:true},
+  {week:3,phase:'Accumulation',mainPct:70,mainSets:4,repLo:6,repHi:6,mainRpe:7,mainRest:150,d4Pct:60,d4Sets:3,d4RepLo:4,d4RepHi:5,d4Rpe:6,d4Rest:150,accSets:3,accRest:75,hasDay4:true},
+  {week:4,phase:'Accumulation',mainPct:75,mainSets:4,repLo:5,repHi:5,mainRpe:7,mainRest:150,d4Pct:65,d4Sets:3,d4RepLo:4,d4RepHi:5,d4Rpe:6,d4Rest:150,accSets:3,accRest:75,hasDay4:true},
+  {week:5,phase:'Deload',mainPct:55,mainSets:3,repLo:5,repHi:5,mainRpe:5,mainRest:120,d4Pct:45,d4Sets:2,d4RepLo:4,d4RepHi:5,d4Rpe:5,d4Rest:120,accSets:2,accRest:75,hasDay4:true},
+  {week:6,phase:'Intensification',mainPct:77,mainSets:4,repLo:4,repHi:4,mainRpe:8,mainRest:180,d4Pct:67,d4Sets:3,d4RepLo:3,d4RepHi:4,d4Rpe:7,d4Rest:150,accSets:2,accRest:75,hasDay4:true},
+  {week:7,phase:'Intensification',mainPct:82,mainSets:3,repLo:3,repHi:3,mainRpe:8,mainRest:240,d4Pct:72,d4Sets:3,d4RepLo:3,d4RepHi:4,d4Rpe:7,d4Rest:150,accSets:2,accRest:75,hasDay4:true},
+  {week:8,phase:'Intensification',mainPct:87,mainSets:3,repLo:2,repHi:2,mainRpe:9,mainRest:270,d4Pct:77,d4Sets:2,d4RepLo:3,d4RepHi:3,d4Rpe:7,d4Rest:150,accSets:2,accRest:75,hasDay4:true},
+  {week:9,phase:'Peaking',mainPct:88,mainSets:3,repLo:2,repHi:2,mainRpe:9,mainRest:270,d4Pct:78,d4Sets:2,d4RepLo:2,d4RepHi:3,d4Rpe:7,d4Rest:150,accSets:1,accRest:75,hasDay4:true},
+  {week:10,phase:'Peaking',mainPct:91,mainSets:2,repLo:1,repHi:2,mainRpe:9,mainRest:270,d4Pct:80,d4Sets:2,d4RepLo:2,d4RepHi:3,d4Rpe:7,d4Rest:150,accSets:1,accRest:75,hasDay4:true},
+  {week:11,phase:'Peaking',mainPct:94,mainSets:2,repLo:1,repHi:1,mainRpe:9,mainRest:270,d4Pct:82,d4Sets:2,d4RepLo:2,d4RepHi:2,d4Rpe:7,d4Rest:150,accSets:1,accRest:75,hasDay4:true},
+  {week:12,phase:'Taper / Meet Week',mainPct:90,mainSets:2,repLo:1,repHi:1,mainRpe:8,mainRest:240,hasDay4:false},
+];
+function plPctEx(n,pctOf,pct,s,lo,hi,rpe,rest,cue){return{...ex(n,s,lo,hi,'Compound',rpe,cue||'',rest),pctOf,pct};}
+function plMaxEx(n,pctOf,rest,cue){return{...ex(n,1,1,1,'Max',10,cue||'',rest),pctOf};}
+function plAccEx(n,s,lo,hi,rest,cue){return s>0?ex(n,s,lo,hi,'Isolation',8,cue||'',rest):null;}
+function buildPLSessions(){
+  const sessions=[];
+  sessions.push({key:'w1d1',label:'Week 1 • Squat Max Test',exercises:[
+    plMaxEx('Competition Squat','squat',240,'Warm up thoroughly in small jumps, then work up to a true 1-rep max with safety bars/a spotter. Allow 30–45 min including warm-up.')
+  ]});
+  sessions.push({key:'w1d2',label:'Week 1 • Bench Max Test',exercises:[
+    plMaxEx('Competition Bench Press','bench',240,'Warm up thoroughly, then work up to a true 1-rep max with a spotter. Allow 30–45 min including warm-up.')
+  ]});
+  sessions.push({key:'w1d3',label:'Week 1 • Deadlift Max Test',exercises:[
+    plMaxEx('Competition Deadlift','deadlift',240,'Warm up thoroughly, then work up to a true 1-rep max. Allow 30–45 min including warm-up.')
+  ]});
+  for(const w of PL_WEEKS){
+    if(w.week===12)continue;
+    const wk=w.week,note=PL_PHASE_NOTE[w.phase];
+    const benchAcc=n=>plAccEx('Paused Bench Press',n,6,10,75,'');
+    sessions.push({key:'w'+wk+'d1',label:'Week '+wk+' • Squat Day',exercises:[
+      plPctEx('Competition Squat','squat',w.mainPct,w.mainSets,w.repLo,w.repHi,w.mainRpe,w.mainRest,note),
+      benchAcc(w.accSets),
+      plAccEx('Leg Extension Machine',w.accSets,12,15,w.accRest,''),
+      plAccEx('Hip Thrust',w.accSets,10,15,w.accRest,''),
+    ].filter(Boolean)});
+    sessions.push({key:'w'+wk+'d2',label:'Week '+wk+' • Bench Day',exercises:[
+      plPctEx('Competition Bench Press','bench',w.mainPct,w.mainSets,w.repLo,w.repHi,w.mainRpe,w.mainRest,note),
+      benchAcc(w.accSets),
+      plAccEx('Cable Overhead Tricep Extension',w.accSets,10,12,w.accRest,''),
+      plAccEx('Cable Chest Fly',w.accSets,12,15,w.accRest,''),
+    ].filter(Boolean)});
+    sessions.push({key:'w'+wk+'d3',label:'Week '+wk+' • Deadlift Day',exercises:[
+      plPctEx('Competition Deadlift','deadlift',w.mainPct,w.mainSets,w.repLo,w.repHi,w.mainRpe,w.mainRest,note),
+      benchAcc(w.accSets),
+      plAccEx('Seated Leg Curl',w.accSets,10,12,w.accRest,''),
+      plAccEx('Back Extension',w.accSets,10,15,w.accRest,''),
+    ].filter(Boolean)});
+    if(w.hasDay4){
+      sessions.push({key:'w'+wk+'d4',label:'Week '+wk+' • Technique Day',exercises:[
+        plPctEx('Paused Squat','squat',w.d4Pct,w.d4Sets,w.d4RepLo,w.d4RepHi,w.d4Rpe,w.d4Rest,'Technique-focused, lower-fatigue session — no additional back squat today.'),
+        plPctEx('Deficit Deadlift','deadlift',w.d4Pct,w.d4Sets,w.d4RepLo,w.d4RepHi,w.d4Rpe,w.d4Rest,''),
+        plAccEx('Weighted Plank',w.accSets,30,45,w.accRest,'Reps field = seconds held per set.'),
+        plAccEx('Cable Crunch',w.accSets,12,15,w.accRest,''),
+      ].filter(Boolean)});
+    }
+  }
+  const w12=PL_WEEKS.find(w=>w.week===12),note12=PL_PHASE_NOTE[w12.phase];
+  sessions.push({key:'w12d1',label:'Week 12 • Squat Opener',exercises:[
+    plPctEx('Competition Squat','squat',w12.mainPct,w12.mainSets,w12.repLo,w12.repHi,w12.mainRpe,w12.mainRest,note12)
+  ]});
+  sessions.push({key:'w12d2',label:'Week 12 • Bench Opener',exercises:[
+    plPctEx('Competition Bench Press','bench',w12.mainPct,w12.mainSets,w12.repLo,w12.repHi,w12.mainRpe,w12.mainRest,note12)
+  ]});
+  sessions.push({key:'w12d3',label:'Week 12 • Deadlift Opener',exercises:[
+    plPctEx('Competition Deadlift','deadlift',w12.mainPct,w12.mainSets,w12.repLo,w12.repHi,w12.mainRpe,w12.mainRest,note12)
+  ]});
+  return sessions;
+}
+const roundPlate=kg=>Math.round(kg/2.5)*2.5;
+
 const PROGS={
   ppl:{id:'ppl',name:'Push / Pull / Legs',short:'PPL',freq:'6x / week',sessions:[
     {key:'push',label:'Push',exercises:[ex('Flat Barbell Bench Press',3,6,10,'Compound',8),ex('Incline Dumbbell Press',2,8,12,'Compound',8),ex('Standing Overhead Press',3,8,10,'Compound',8),ex('Dumbbell Lateral Raise',4,12,15,'Isolation',10),ex('Cable Overhead Tricep Extension',3,10,12,'Isolation',10),ex('Cable Pushdown (Rope)',2,12,15,'Isolation',10)]},
@@ -124,7 +217,8 @@ const PROGS={
     {key:'run_vo2max',label:'Run — VO2 Max Intervals',exercises:[
       interval('VO2 Max Intervals — Run',4,240,180,'Norwegian 4x4 — 90-95% max HR, hard but controlled (RPE 9). 3min easy jog recovery between rounds. Log distance covered each round to track progression.')
     ]}
-  ]}
+  ]},
+  pl:{id:'pl',name:'Powerlifting Peaking Block',short:'Power',freq:'4x / week',sessions:buildPLSessions()}
 };
 
 const toDisp=(kg,u)=>u==='kg'?Math.round(kg*10)/10:Math.round(kg/0.4536*10)/10;
@@ -132,6 +226,7 @@ const fmtDate=d=>new Date(d).toLocaleDateString('en-GB',{weekday:'short',day:'nu
 const fmtTime=s=>Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;
 const fmt=n=>Math.round(n).toLocaleString();
 const DEF_ST={cur:0,best:0,lastDate:null,total:0,dates:[]};
+const DEF_PR={squat:null,bench:null,deadlift:null};
 // Two-axis activity model — daily/occupational activity and structured training
 // are separate contributors to total energy expenditure (IOM Dietary Reference
 // Intakes for Energy, 2005), so a single dropdown conflating them misclassifies
@@ -457,7 +552,7 @@ function Programmes({planId,onStart}){
 }
 
 // ── SESSION OVERVIEW ──────────────────────────────────────────────────────────
-function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}){
+function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack,oneRM}){
   const [swapIdx,setSwapIdx]=useState(null);
   const sk=(i)=>planId+'_'+sess.label+'_'+i;
   const nm=(e,i)=>(swaps&&swaps[sk(i)])||e.name;
@@ -491,6 +586,9 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
               <div style={{fontSize:11,color:'#6B7280'}}>{e.cue}</div>
             </>:<>
               <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.rLo}&ndash;{e.rHi} reps</div>
+              {e.pctOf&&e.pct!=null&&(oneRM&&oneRM[e.pctOf]?
+                <div style={{fontSize:11,color:A,fontWeight:600,marginBottom:2}}>{e.pct}% of {e.pctOf} 1RM &bull; target &asymp;{toDisp(roundPlate(oneRM[e.pctOf]*e.pct/100),unit)}{unit}</div>
+                :<div style={{fontSize:11,color:'#6B7280',marginBottom:2}}>{e.pct}% of {e.pctOf} 1RM &mdash; test your max in Week 1 first</div>)}
               <div style={{fontSize:11,color:e.rpe>=9?A:'#6B7280'}}>RPE {e.rpe} &mdash; {10-e.rpe} reps left</div>
               {e.cue&&<div style={{fontSize:11,color:'#6B7280',marginTop:2}}>{e.cue}</div>}
             </>}
@@ -523,7 +621,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack}
 }
 
 // ── ACTIVE WORKOUT ────────────────────────────────────────────────────────────
-function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
+function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,oneRM,onSetPR}){
   const skKey=(i)=>planId+'_'+sess.label+'_'+i;
   const buildEx=()=>sess.exercises.map((e,i)=>{
     const name=(swaps&&swaps[skKey(i)])||e.name;
@@ -538,10 +636,11 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
         logged:[],curR:''};
     }
     const pb=prevBest(hist,sess.label,name);
+    const target=(e.pctOf&&e.pct!=null&&oneRM&&oneRM[e.pctOf])?roundPlate(oneRM[e.pctOf]*e.pct/100):null;
     return{...e,name,base:e.name,ei:i,pb,atb:allBest(hist,name),
       pn:lastNotes(hist,sess.label,name),notes:'',
       logged:[],  // completed sets
-      curW:pb!=null?String(toDisp(pb,unit)):'',
+      curW:target!=null?String(toDisp(target,unit)):(pb!=null?String(toDisp(pb,unit)):''),
       curR:'',curRpe:''};
   });
 
@@ -621,6 +720,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
     const kg=parseFloat(cur.curW)||0;
     const reps=parseFloat(cur.curR)||0;
     if(!reps)return; // need at least reps
+    if(cur.type==='Max'&&cur.pctOf&&kg>0&&onSetPR)onSetPR(cur.pctOf,kg);
     const isPR=kg>0&&(cur.atb===null||kg>cur.atb);
     const hitTop=reps>=cur.rHi;
     const newLogged=[...cur.logged,{kg,reps,rpe:cur.curRpe,w:cur.curW,r:cur.curR}];
@@ -715,6 +815,9 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit}){
               {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{cur.pb}m</span></div>}
             </>:<>
               <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
+              {cur.pctOf&&cur.pct!=null&&(oneRM&&oneRM[cur.pctOf]?
+                <div style={{fontSize:12,color:A,fontWeight:600,marginTop:3}}>{cur.pct}% of {cur.pctOf} 1RM &bull; target &asymp;{toDisp(roundPlate(oneRM[cur.pctOf]*cur.pct/100),unit)}{unit}</div>
+                :<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.pct}% of {cur.pctOf} 1RM &mdash; test your max in Week 1 first</div>)}
               {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{toDisp(cur.pb,unit)}{unit}</span></div>}
               {lEx&&lEx.sets&&lEx.sets.some(s=>s.reps>=cur.rHi)&&<div style={{fontSize:12,color:A,fontWeight:600,marginTop:4}}>&#8593; You maxed reps last time — add weight today</div>}
             </>}
@@ -1073,9 +1176,12 @@ function Nutrition({saved,savedRes,onSave,onSaveRes}){
   );
 }
 
-function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose,email,onSignOut}){
+function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose,email,onSignOut,oneRM,onSavePR}){
   const [nm,setNm]=useState(name);const [u,setU]=useState(unit);const [p,setP]=useState(planId);
   const [showP,setShowP]=useState(false);const [confirm,setConfirm]=useState(null);
+  const [sq,setSq]=useState(oneRM&&oneRM.squat!=null?String(toDisp(oneRM.squat,unit)):'');
+  const [bp,setBp]=useState(oneRM&&oneRM.bench!=null?String(toDisp(oneRM.bench,unit)):'');
+  const [dl,setDl]=useState(oneRM&&oneRM.deadlift!=null?String(toDisp(oneRM.deadlift,unit)):'');
   const Pill=({a,on,l})=><Btn on={on} onClick={on} ch={l} style={{flex:1,height:44,borderRadius:10,background:a?A:'transparent',color:a?'#000':'#9CA3AF',border:'1px solid '+B,fontSize:14,fontWeight:700}}/>;
   return(
     <FS scroll>
@@ -1107,6 +1213,24 @@ function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose,email,onSi
             </div>}
           </div>
         </>}/>
+        {p==='pl'&&<><div style={{fontSize:11,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:8}}>Your 1RMs ({u})</div>
+        <Card style={{marginBottom:14,display:'flex',flexDirection:'column',gap:12}} ch={<>
+          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.5}}>Set automatically from your Week 1 max tests — edit here if you need to correct one.</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            <div><div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:6,textAlign:'center'}}>Squat</div>
+              <input value={sq} onChange={e=>setSq(e.target.value)} onBlur={()=>onSavePR('squat',sq)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="&mdash;"
+                style={{width:'100%',height:44,background:'#0A0A0A',border:'1px solid '+B,borderRadius:8,color:'#fff',fontSize:15,textAlign:'center',outline:'none'}}/>
+            </div>
+            <div><div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:6,textAlign:'center'}}>Bench</div>
+              <input value={bp} onChange={e=>setBp(e.target.value)} onBlur={()=>onSavePR('bench',bp)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="&mdash;"
+                style={{width:'100%',height:44,background:'#0A0A0A',border:'1px solid '+B,borderRadius:8,color:'#fff',fontSize:15,textAlign:'center',outline:'none'}}/>
+            </div>
+            <div><div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:6,textAlign:'center'}}>Deadlift</div>
+              <input value={dl} onChange={e=>setDl(e.target.value)} onBlur={()=>onSavePR('deadlift',dl)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="&mdash;"
+                style={{width:'100%',height:44,background:'#0A0A0A',border:'1px solid '+B,borderRadius:8,color:'#fff',fontSize:15,textAlign:'center',outline:'none'}}/>
+            </div>
+          </div>
+        </>}/></>}
         {email&&<><div style={{fontSize:11,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:8}}>Account</div>
         <Card style={{marginBottom:14,display:'flex',alignItems:'center',justifyContent:'space-between'}} ch={<>
           <div style={{fontSize:13,color:'#9CA3AF'}}>{email}</div>
@@ -1156,6 +1280,7 @@ function App(){
   const [planId,setPlanId]=useState('ppl');
   const [hist,setHist]=useState([]);
   const [streak,setStreak]=useState(DEF_ST);
+  const [oneRM,setOneRM]=useState(DEF_PR);
   const [cel,setCel]=useState([]);
   const [swaps,setSwaps]=useState({});
   const [nutrIn,setNutrIn]=useState(null);
@@ -1202,6 +1327,7 @@ function App(){
     const rh=ld(K.hi,[]);setHist(Array.isArray(rh)?rh.map(h=>({...h,exercises:Array.isArray(h.exercises)?h.exercises.map(e=>({...e,sets:Array.isArray(e.sets)?e.sets:[],notes:e.notes||''})):[]})):[]);
     const rs=ld(K.st,DEF_ST);setStreak({...DEF_ST,...rs,dates:Array.isArray(rs.dates)?rs.dates:[],total:rs.total||0});
     setCel(ld(K.cl,[]));setSwaps(ld(K.sw,{})||{});setNutrIn(ld(K.nu,null));setNutrRes(ld(K.nr,null));
+    const rp=ld(K.pr,DEF_PR);setOneRM({...DEF_PR,...rp});
     setTimeout(()=>setReady(true),300);
   },[]);
 
@@ -1217,8 +1343,9 @@ function App(){
         setOb(d.ob??false);setName(d.nm??'');setUnit(d.ut??'kg');setPlanId(d.pl??'ppl');
         setHist(Array.isArray(d.hi)?d.hi:[]);setStreak(d.st?{...DEF_ST,...d.st}:DEF_ST);
         setCel(Array.isArray(d.cl)?d.cl:[]);setSwaps(d.sw||{});setNutrIn(d.nu??null);setNutrRes(d.nr??null);
+        setOneRM(d.pr?{...DEF_PR,...d.pr}:DEF_PR);
         sv(K.ob,d.ob??false);sv(K.nm,d.nm??'');sv(K.ut,d.ut??'kg');sv(K.pl,d.pl??'ppl');
-        sv(K.hi,d.hi??[]);sv(K.st,d.st??DEF_ST);sv(K.cl,d.cl??[]);sv(K.sw,d.sw??{});sv(K.nu,d.nu??null);sv(K.nr,d.nr??null);
+        sv(K.hi,d.hi??[]);sv(K.st,d.st??DEF_ST);sv(K.cl,d.cl??[]);sv(K.sw,d.sw??{});sv(K.nu,d.nu??null);sv(K.nr,d.nr??null);sv(K.pr,d.pr??DEF_PR);
       }
       if(!cancelled)setCloudReady(true);
     })();
@@ -1228,15 +1355,17 @@ function App(){
   // Push this user's state to Supabase whenever it changes (debounced, batched into one row)
   useEffect(()=>{
     if(!authUser||!cloudReady)return;
-    const payload={ob,nm:name,ut:unit,pl:planId,hi:hist,st:streak,cl:cel,sw:swaps,nu:nutrIn,nr:nutrRes};
+    const payload={ob,nm:name,ut:unit,pl:planId,hi:hist,st:streak,cl:cel,sw:swaps,nu:nutrIn,nr:nutrRes,pr:oneRM};
     const t=setTimeout(()=>{
       sb.from('app_state').upsert({user_id:authUser.id,data:payload,updated_at:new Date().toISOString()}).then(({error})=>{if(error)console.error('cloud sync failed',error);});
     },600);
     return ()=>clearTimeout(t);
-  },[authUser,cloudReady,ob,name,unit,planId,hist,streak,cel,swaps,nutrIn,nutrRes]);
+  },[authUser,cloudReady,ob,name,unit,planId,hist,streak,cel,swaps,nutrIn,nutrRes,oneRM]);
 
   function savePrefs({name:nm,unit:u,planId:p}){setName(nm);setUnit(u);setPlanId(p);sv(K.nm,nm);sv(K.ut,u);sv(K.pl,p);}
   function saveSwap(key,val){const ns=val!=null?{...swaps,[key]:val}:(()=>{const c={...swaps};delete c[key];return c;})();setSwaps(ns);sv(K.sw,ns);}
+  function setPR(liftKey,kg){const np={...oneRM,[liftKey]:kg};setOneRM(np);sv(K.pr,np);}
+  function savePRFromSettings(liftKey,val){const n=parseFloat(val);const kg=(val===''||isNaN(n)||n<=0)?null:(unit==='kg'?n:n*0.4536);setPR(liftKey,kg);}
 
   function startSess(sess,pid){setAS({sess,planId:pid||planId});setScreen('session');}
 
@@ -1267,16 +1396,16 @@ function App(){
       <div style={{flex:1,position:'relative',overflow:'hidden'}}>
         {screen==='home'&&<Home planId={planId} hist={hist} streak={streak} onStart={sess=>startSess(sess,planId)} onSettings={()=>setScreen('settings')}/>}
         {screen==='programmes'&&<Programmes planId={planId} onStart={(sess,pid)=>startSess(sess,pid)}/>}
-        {screen==='session'&&aS&&<SessionOverview planId={aS.planId} sess={aS.sess} hist={hist} unit={unit} swaps={swaps} onSaveSwap={saveSwap} onBegin={()=>setScreen('workout')} onBack={()=>{setScreen(tab);setAS(null);}}/>}
+        {screen==='session'&&aS&&<SessionOverview planId={aS.planId} sess={aS.sess} hist={hist} unit={unit} swaps={swaps} onSaveSwap={saveSwap} onBegin={()=>setScreen('workout')} onBack={()=>{setScreen(tab);setAS(null);}} oneRM={oneRM}/>}
         {screen==='progress'&&<Progress hist={hist} unit={unit}/>}
         {screen==='nutrition'&&<Nutrition saved={nutrIn} savedRes={nutrRes} onSave={v=>{setNutrIn(v);sv(K.nu,v);}} onSaveRes={v=>{setNutrRes(v);sv(K.nr,v);}}/>}
         {screen==='settings'&&<Settings name={name} unit={unit} planId={planId} onSave={savePrefs} email={authUser&&authUser.email} onSignOut={()=>sb.auth.signOut()}
-          onReset={pid=>{const nh=hist.filter(h=>h.planId!==pid);setHist(nh);sv(K.hi,nh);setStreak(s=>({...s,cur:0}));setScreen('home');setTab('home');}}
-          onResetAll={()=>{Object.values(K).forEach(k=>{try{localStorage.removeItem(k);}catch{}});setOb(false);setName('');setUnit('kg');setPlanId('ppl');setHist([]);setStreak(DEF_ST);setCel([]);setSwaps({});setNutrIn(null);setNutrRes(null);}}
-          onClose={()=>setScreen(tab)}/>}
+          onReset={pid=>{const nh=hist.filter(h=>h.planId!==pid);setHist(nh);sv(K.hi,nh);setStreak(s=>({...s,cur:0}));if(pid==='pl'){setOneRM(DEF_PR);sv(K.pr,DEF_PR);}setScreen('home');setTab('home');}}
+          onResetAll={()=>{Object.values(K).forEach(k=>{try{localStorage.removeItem(k);}catch{}});setOb(false);setName('');setUnit('kg');setPlanId('ppl');setHist([]);setStreak(DEF_ST);setCel([]);setSwaps({});setNutrIn(null);setNutrRes(null);setOneRM(DEF_PR);}}
+          onClose={()=>setScreen(tab)} oneRM={oneRM} onSavePR={savePRFromSettings}/>}
         {screen==='complete'&&comp&&<WorkoutComplete entry={comp.entry} unit={unit} prs={comp.prs} duration={comp.duration} toIncrease={comp.toIncrease} onHome={()=>{setComp(null);setScreen('home');setTab('home');}}/>}
         {/* Workout — position:absolute same as all other working screens */}
-        {screen==='workout'&&aS&&<ActiveWorkout planId={aS.planId} sess={aS.sess} hist={hist} unit={unit} swaps={swaps} onSaveSwap={saveSwap} onDone={finishWorkout} onExit={()=>{setScreen(tab);setAS(null);}}/>}
+        {screen==='workout'&&aS&&<ActiveWorkout planId={aS.planId} sess={aS.sess} hist={hist} unit={unit} swaps={swaps} onSaveSwap={saveSwap} onDone={finishWorkout} onExit={()=>{setScreen(tab);setAS(null);}} oneRM={oneRM} onSetPR={setPR}/>}
       </div>
       {/* Tab bar */}
       {showTab&&<div style={{display:'flex',borderTop:'1px solid '+B,background:'#0A0A0A',padding:'6px 4px 26px',flexShrink:0}}>
