@@ -78,7 +78,7 @@ const plyo=(n,s,reps,rest,cue)=>({name:n,sets:s,reps:reps,rest:rest,type:'Plyo',
 const dist=(n,s,metres,rest,cue)=>({name:n,sets:s,metres:metres,rest:rest,type:'Distance',cue:cue||''});
 const interval=(n,s,workS,rest,cue)=>({name:n,sets:s,workS:workS,rest:rest,type:'Interval',cue:cue||''});
 
-// ── POWERLIFTING PEAKING BLOCK (12-week, 4x/week) ───────────────────────────────
+// ── POWERLIFTING PEAKING BLOCK (12-week + Wk13 retest, 4x/week) ───────────────────────────────
 // Research-backed structure: Wk1 testing, Wk2-4 accumulation (65-75%), Wk5 deload,
 // Wk6-8 intensification (77-87%), Wk9-11 peaking (88-94%), Wk12 taper/meet (openers
 // @90%, intensity held, volume cut, accessories dropped). Day4 is a lower-fatigue
@@ -158,6 +158,19 @@ function buildPLSessions(){
   sessions.push({key:'w12d3',label:'Week 12 • Deadlift Opener',exercises:[
     plPctEx('Competition Deadlift','deadlift',w12.mainPct,w12.mainSets,w12.repLo,w12.repHi,w12.mainRpe,w12.mainRest,note12)
   ]});
+  // Week 13 — max retest. Three attempts per lift: opener (90%), second (95%), then a new 1RM.
+  // Attempt 3 is a 'Max' set, so the weight you log updates your stored 1RM, same as Week 1.
+  const RT_NOTE='Retest week — compare today’s top single with your Week 1 max. Warm up in small jumps first (30–45 min total), use a spotter/safety bars, and take full rest between attempts.';
+  const retest=(label,key,lift,name,restA)=>{
+    sessions.push({key:key,label:'Week 13 • '+label,exercises:[
+      plPctEx(name+' — Attempt 1',lift,90,1,1,1,8,240,'Opener — fast and crisp, should feel easy. '+RT_NOTE),
+      plPctEx(name+' — Attempt 2',lift,95,1,1,1,9,restA,'Second attempt — heavy but controlled. Only continue if attempt 1 moved well.'),
+      {...plMaxEx(name+' — Attempt 3 (New Max)',lift,restA,'Go for a new 1-rep max. Log the heaviest weight you complete — it replaces your stored 1RM. Stop at attempt 2 if form or bar speed has dropped.')}
+    ]});
+  };
+  retest('Squat Retest','w13d1','squat','Competition Squat',300);
+  retest('Bench Retest','w13d2','bench','Competition Bench Press',300);
+  retest('Deadlift Retest','w13d3','deadlift','Competition Deadlift',300);
   return sessions;
 }
 const roundPlate=kg=>Math.round(kg/2.5)*2.5;
@@ -332,6 +345,42 @@ function Auth({initialMsg}){
       {mode==='forgot'
         ?<Btn onClick={()=>{setMode('signin');setErr('');setMsg('');}} ch="Back to sign in" style={{width:'100%',height:44,marginTop:12,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>
         :<Btn onClick={startCheckout} dis={busy} ch="Don't have an account? Get lifetime access" style={{width:'100%',height:44,marginTop:12,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>}
+    </div>
+  );
+}
+
+// ── PAYWALL (signed in but no payment found) ──────────────────────────────────
+async function startCheckoutFor(email){
+  const res=await fetch('/api/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(email?{email}:{})});
+  const data=await res.json();
+  if(!res.ok||!data.url)throw new Error(data.error||'Could not start checkout');
+  window.location.href=data.url;
+}
+function Paywall({email,status,onRecheck}){
+  const [busy,setBusy]=useState(false);
+  const [err,setErr]=useState('');
+  const failed=status==='error';
+  async function pay(){
+    setErr('');setBusy(true);
+    try{await startCheckoutFor(email);}catch(e){setErr(e.message||'Something went wrong');setBusy(false);}
+  }
+  return(
+    <div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',flexDirection:'column',justifyContent:'center',padding:'32px 24px'}}>
+      <div style={{textAlign:'center',marginBottom:32}}>
+        <div style={{fontSize:13,fontWeight:800,color:A,letterSpacing:'0.1em',marginBottom:10}}>CONSTANTINE FITNESS</div>
+        <div style={{fontSize:24,fontWeight:800}}>{failed?'We could not check your access':'Payment required'}</div>
+        <div style={{fontSize:13,color:'#9CA3AF',marginTop:8,lineHeight:1.5}}>
+          {failed
+            ?'Something went wrong while checking your payment. Check your connection and try again.'
+            :'We could not find a payment for '+email+'. Get lifetime access to unlock the app.'}
+        </div>
+      </div>
+      {err&&<div style={{fontSize:13,color:R,marginBottom:12,textAlign:'center'}}>{err}</div>}
+      {!failed&&<Btn onClick={pay} dis={busy} ch={busy?'...':'Get lifetime access'}
+        style={{width:'100%',height:54,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:17,fontWeight:800}}/>}
+      <Btn onClick={onRecheck} ch={failed?'Try again':'I have already paid - check again'}
+        style={{width:'100%',height:failed?54:44,marginTop:12,borderRadius:12,color:failed?'#000':'#9CA3AF',background:failed?'linear-gradient(135deg,#0C4A6E,'+A+')':'transparent',fontSize:failed?17:13,fontWeight:failed?800:600}}/>
+      <Btn onClick={()=>sb.auth.signOut()} ch="Sign out" style={{width:'100%',height:44,marginTop:4,color:'#9CA3AF',fontSize:13,fontWeight:600}}/>
     </div>
   );
 }
@@ -1215,7 +1264,7 @@ function Settings({name,unit,planId,onSave,onReset,onResetAll,onClose,email,onSi
         </>}/>
         {p==='pl'&&<><div style={{fontSize:11,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:8}}>Your 1RMs ({u})</div>
         <Card style={{marginBottom:14,display:'flex',flexDirection:'column',gap:12}} ch={<>
-          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.5}}>Set automatically from your Week 1 max tests — edit here if you need to correct one.</div>
+          <div style={{fontSize:11,color:'#6B7280',lineHeight:1.5}}>Set automatically from your Week 1 max tests and Week 13 retest — edit here if you need to correct one.</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
             <div><div style={{fontSize:11,color:'#9CA3AF',fontWeight:600,marginBottom:6,textAlign:'center'}}>Squat</div>
               <input value={sq} onChange={e=>setSq(e.target.value)} onBlur={()=>onSavePR('squat',sq)} type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="&mdash;"
@@ -1273,6 +1322,7 @@ function App(){
   const [ready,setReady]=useState(false);
   const [authUser,setAuthUser]=useState(undefined); // undefined=checking, null=signed out, object=signed in
   const [cloudReady,setCloudReady]=useState(false); // whether we've attempted the Supabase fetch for this user
+  const [access,setAccess]=useState(undefined); // undefined=checking, true=paid, false=no payment found, 'error'=could not verify
   const [recovery,setRecovery]=useState(false); // true when user has arrived via a password-reset link
   const [ob,setOb]=useState(false);
   const [name,setName]=useState('');
@@ -1322,6 +1372,22 @@ function App(){
     return ()=>sub.subscription.unsubscribe();
   },[]);
 
+  // Ask the server whether this signed-in account has paid (Stripe is the source of truth)
+  function checkAccess(){
+    setAccess(undefined);
+    sb.auth.getSession().then(({data})=>{
+      const token=data.session&&data.session.access_token;
+      if(!token){setAccess('error');return;}
+      return fetch('/api/check-access',{method:'POST',headers:{Authorization:'Bearer '+token}})
+        .then(r=>r.json().then(j=>({ok:r.ok,j})))
+        .then(({ok,j})=>setAccess(ok&&j&&typeof j.access==='boolean'?j.access:'error'));
+    }).catch(()=>setAccess('error'));
+  }
+  useEffect(()=>{
+    if(!authUser){setAccess(undefined);return;}
+    checkAccess();
+  },[authUser&&authUser.id]);
+
   useEffect(()=>{
     setOb(ld(K.ob,false));setName(ld(K.nm,''));setUnit(ld(K.ut,'kg'));setPlanId(ld(K.pl,'ppl'));
     const rh=ld(K.hi,[]);setHist(Array.isArray(rh)?rh.map(h=>({...h,exercises:Array.isArray(h.exercises)?h.exercises.map(e=>({...e,sets:Array.isArray(e.sets)?e.sets:[],notes:e.notes||''})):[]})):[]);
@@ -1354,13 +1420,13 @@ function App(){
 
   // Push this user's state to Supabase whenever it changes (debounced, batched into one row)
   useEffect(()=>{
-    if(!authUser||!cloudReady)return;
+    if(!authUser||!cloudReady||access!==true)return;
     const payload={ob,nm:name,ut:unit,pl:planId,hi:hist,st:streak,cl:cel,sw:swaps,nu:nutrIn,nr:nutrRes,pr:oneRM};
     const t=setTimeout(()=>{
       sb.from('app_state').upsert({user_id:authUser.id,data:payload,updated_at:new Date().toISOString()}).then(({error})=>{if(error)console.error('cloud sync failed',error);});
     },600);
     return ()=>clearTimeout(t);
-  },[authUser,cloudReady,ob,name,unit,planId,hist,streak,cel,swaps,nutrIn,nutrRes,oneRM]);
+  },[authUser,cloudReady,access,ob,name,unit,planId,hist,streak,cel,swaps,nutrIn,nutrRes,oneRM]);
 
   function savePrefs({name:nm,unit:u,planId:p}){setName(nm);setUnit(u);setPlanId(p);sv(K.nm,nm);sv(K.ut,u);sv(K.pl,p);}
   function saveSwap(key,val){const ns=val!=null?{...swaps,[key]:val}:(()=>{const c={...swaps};delete c[key];return c;})();setSwaps(ns);sv(K.sw,ns);}
@@ -1384,10 +1450,11 @@ function App(){
   const showTab=!['session','workout','complete'].includes(screen);
   const TABS=[{id:'home',l:'Home',e:'\uD83C\uDFE0'},{id:'programmes',l:'Plans',e:'\uD83D\uDCCB'},{id:'progress',l:'Log',e:'\uD83D\uDCCA'},{id:'nutrition',l:'Nutrition',e:'\uD83D\uDD25'},{id:'settings',l:'Settings',e:'\u2699\uFE0F'}];
 
-  if(!ready||authUser===undefined||claimEmail===undefined||(authUser&&!cloudReady&&!recovery))return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
+  if(!ready||authUser===undefined||claimEmail===undefined||(authUser&&!cloudReady&&!recovery)||(authUser&&!recovery&&access===undefined))return<div style={{position:'fixed',inset:0,background:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{fontSize:18,fontWeight:800,color:A}}>CONSTANTINE FITNESS</div></div>;
   if(recovery)return<ResetPassword onDone={()=>setRecovery(false)}/>;
   if(claimEmail&&!authUser)return<ClaimAccess email={claimEmail} onDone={(msg)=>{setClaimEmail(null);setClaimMsg(msg);}}/>;
   if(!authUser)return<Auth initialMsg={claimMsg}/>;
+  if(access!==true)return<Paywall email={authUser.email} status={access} onRecheck={checkAccess}/>;
   if(!ob)return<Onboarding onDone={({name:n,plan:p,unit:u})=>{setName(n);setPlanId(p);setUnit(u);setOb(true);sv(K.nm,n);sv(K.pl,p);sv(K.ut,u);sv(K.ob,true);}}/>;
 
   return(

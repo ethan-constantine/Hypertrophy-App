@@ -17,7 +17,8 @@ module.exports = async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    if (session.payment_status !== 'paid') {
+    const paid = session.status === 'complete' && (session.payment_status === 'paid' || session.payment_status === 'no_payment_required');
+    if (!paid) {
       res.status(200).json({ paid: false });
       return;
     }

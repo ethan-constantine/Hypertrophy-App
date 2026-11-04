@@ -10,10 +10,13 @@ module.exports = async (req, res) => {
 
   try {
     const origin = `https://${req.headers.host}`;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [{ price: 'price_1UM4qJIwUjKHUN198Jyb1WNs', quantity: 1 }],
       allow_promotion_codes: true,
+      ...(email && email.includes('@') ? { customer_email: email } : {}),
       success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?checkout=cancelled`,
     });
