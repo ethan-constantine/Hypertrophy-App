@@ -269,7 +269,7 @@ function nextSess(pid,hist){const ss=PROGS[pid].sessions;const core=ss.filter(s=
 
 // ── SHARED UI ──────────────────────────────────────────────────────────────────
 const Btn=({onClick,ch,style,dis})=><button onClick={onClick} disabled={!!dis} style={{opacity:dis?0.5:1,display:'flex',alignItems:'center',justifyContent:'center',...style}}>{ch}</button>;
-const Card=({ch,style})=><div style={{background:S,borderRadius:12,border:'1px solid '+B,padding:16,...style}}>{ch}</div>;
+const Card=({ch,style,onClick})=><div onClick={onClick} style={{background:S,borderRadius:12,border:'1px solid '+B,padding:16,...style}}>{ch}</div>;
 
 // All screens fill the container — same as working screens (Home, Nutrition etc.)
 // Using position:absolute;inset:0 which gives explicit dimensions on iOS
@@ -715,6 +715,31 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
   const tx=useRef(null);
   const workTmr=useRef(null);
   const workT0=useRef(Date.now());
+  const restEnd=useRef(0);      // timestamp the rest period ends - keeps time correctly while the phone is locked
+  const audioCtx=useRef(null);
+  const wakeRef=useRef(null);
+  const [editIdx,setEditIdx]=useState(null); // index of a logged set being edited
+  const [ed,setEd]=useState({w:'',r:'',t:''});
+  // Keep the screen awake for the whole workout (re-acquired when the app comes back to the front)
+  function requestWake(){
+    try{
+      if('wakeLock' in navigator&&document.visibilityState==='visible'&&!wakeRef.current){
+        navigator.wakeLock.request('screen').then(l=>{wakeRef.current=l;l.addEventListener('release',()=>{wakeRef.current=null;});}).catch(()=>{});
+      }
+    }catch(e){}
+  }
+  useEffect(()=>{
+    requestWake();
+    const onVis=()=>{
+      if(document.visibilityState!=='visible')return;
+      if(restEnd.current)tickRest();
+      if(workTmr.current)setWorkSecs(Math.round((Date.now()-workT0.current)/1000));
+      requestWake();
+    };
+    document.addEventListener('visibilitychange',onVis);
+    return()=>{document.removeEventListener('visibilitychange',onVis);try{wakeRef.current&&wakeRef.current.release();}catch(e){}wakeRef.current=null;};
+    // eslint-disable-next-line
+  },[]);
 
   useEffect(()=>()=>{if(tmr.current)clearInterval(tmr.current);if(workTmr.current)clearInterval(workTmr.current);},[]);
 
@@ -737,7 +762,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     if(cur.type==='Distance'&&!allSetsDone&&!resting){
       workT0.current=Date.now();
       setWorkSecs(0);
-      workTmr.current=setInterval(()=>setWorkSecs(s=>s+1),1000);
+      workTmr.current=setInterval(()=>setWorkSecs(Math.round((Date.now()-workT0.current)/1000)),500);
     } else {
       setWorkSecs(0);
     }
@@ -745,12 +770,40 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     // eslint-disable-next-line
   },[ei,setsDone,resting]);
 
+  // Audio must be unlocked by a tap (iOS) - this runs from the Log Set tap that starts the rest
+  function primeAudio(){
+    try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+      if(!audioCtx.current)audioCtx.current=new AC();
+      if(audioCtx.current.state==='suspended')audioCtx.current.resume();}catch(e){}
+  }
+  function beep(){
+    try{
+      const c=audioCtx.current;
+      if(c){[0,0.3,0.6].forEach(d=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=880;
+        const t=c.currentTime+d;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.5,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);
+        o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+0.25);});}
+      if(navigator.vibrate)navigator.vibrate([250,120,250]);
+    }catch(e){}
+  }
+  function tickRest(){
+    if(!restEnd.current)return;
+    const left=Math.max(0,Math.ceil((restEnd.current-Date.now())/1000));
+    setSecs(left);
+    if(left<=0){
+      if(tmr.current)clearInterval(tmr.current);tmr.current=null;
+      const late=Date.now()-restEnd.current;restEnd.current=0;
+      if(late<4000)beep();
+    }
+  }
   function startRest(s){
     if(tmr.current)clearInterval(tmr.current);
+    primeAudio();
+    restEnd.current=Date.now()+s*1000;
     setSecs(s);setTotSecs(s);
-    tmr.current=setInterval(()=>setSecs(t=>{if(t<=1){clearInterval(tmr.current);return 0;}return t-1;}),1000);
+    tmr.current=setInterval(tickRest,250);
   }
-  function stopRest(){if(tmr.current)clearInterval(tmr.current);setSecs(0);setTotSecs(0);}
+  function addRest(n){if(!restEnd.current)return;restEnd.current+=n*1000;setTotSecs(t=>t+n);tickRest();}
+  function stopRest(){if(tmr.current)clearInterval(tmr.current);tmr.current=null;restEnd.current=0;setSecs(0);setTotSecs(0);}
 
   function logSet(){
     if(cur.type==='Plyo'){
@@ -779,7 +832,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
       startRest(cur.rest||180);
       return;
     }
-    const kg=parseFloat(cur.curW)||0;
+    const kg=(parseFloat(cur.curW)||0)*(unit==='kg'?1:0.4536);
     const reps=parseFloat(cur.curR)||0;
     if(!reps)return; // need at least reps
     if(cur.type==='Max'&&cur.pctOf&&kg>0&&onSetPR)onSetPR(cur.pctOf,kg);
@@ -801,8 +854,49 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
 
   function goTo(j){
     if(j<0||j>=exs.length)return;
-    setEi(j);setPr(null);stopRest();setShowList(false);setShowSwap(false);
+    setEi(j);setPr(null);stopRest();setShowList(false);setShowSwap(false);setEditIdx(null);
   }
+  const isRepType=x=>x.type!=='Plyo'&&x.type!=='Distance'&&x.type!=='Interval';
+  function openEdit(i){
+    const st=cur.logged[i];if(!st)return;
+    setEd({w:st.w!=null?String(st.w):'',r:st.r!=null&&st.r!==''?String(st.r):String(st.reps||''),t:st.t!=null?fmtTime(st.t):''});
+    setEditIdx(i);
+  }
+  function applyLogged(nl){
+    setExs(p=>p.map((x,i)=>{
+      if(i!==ei)return x;
+      const rep=isRepType(x);
+      let atb=x.atb;
+      if(rep||x.type==='Interval'){
+        const base=x.type==='Interval'?allBestMetres(hist,x.name):allBest(hist,x.name);
+        const vals=nl.map(q=>x.type==='Interval'?q.reps:q.kg).filter(v=>v>0);
+        atb=vals.length?Math.max(base==null?0:base,...vals):base;
+      }
+      return{...x,logged:nl,atb,hitTop:rep?nl.some(q=>q.reps>=x.rHi):x.hitTop};
+    }));
+    setEditIdx(null);setPr(null);
+  }
+  function saveEdit(){
+    const st=cur.logged[editIdx];if(!st)return;
+    let ns={...st};
+    if(cur.type==='Distance'){
+      const m=/^(\d+):(\d{1,2})$/.exec(ed.t.trim());const t=m?(+m[1])*60+(+m[2]):parseFloat(ed.t);
+      if(!(t>0))return;ns.t=Math.round(t);
+    }else{
+      const r=parseFloat(ed.r)||0;if(!r)return;
+      ns={...ns,reps:r,r:ed.r};
+      if(isRepType(cur)){const w=parseFloat(ed.w)||0;ns={...ns,kg:w*(unit==='kg'?1:0.4536),w:ed.w};
+        if(cur.type==='Max'&&cur.pctOf&&ns.kg>0&&onSetPR)onSetPR(cur.pctOf,ns.kg);}
+    }
+    applyLogged(cur.logged.map((x,j)=>j===editIdx?ns:x));
+  }
+  function deleteSet(){applyLogged(cur.logged.filter((x,j)=>j!==editIdx));}
+  const edField=(label,key,mode)=>(
+    <div style={{flex:1}}>
+      <div style={{fontSize:11,color:'#6B7280',fontWeight:600,marginBottom:6,textAlign:'center'}}>{label}</div>
+      <input value={ed[key]} onChange={e=>setEd({...ed,[key]:e.target.value})} type="text" inputMode={mode} autoComplete="off"
+        style={{width:'100%',height:52,background:'#0A0A0A',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:20,fontWeight:700,textAlign:'center',outline:'none'}}/>
+    </div>);
   function nextExercise(){
     if(nextIdx!==-1)goTo(nextIdx);
   }
@@ -831,7 +925,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     let vol=0;const prs=[];const toIncrease=[];
     const data=exs.map(e=>{
       e.logged.forEach(s=>{const kg=s.kg||0;vol+=kg*(s.reps||0);
-        if(kg>0&&(e.atb===null||kg>e.atb)&&!prs.find(p=>p.name===e.name))prs.push({name:e.name,weight:toDisp(kg,unit)});});
+        if(kg>0&&(()=>{const hb=allBest(hist,e.name);return hb===null||kg>hb;})()&&!prs.find(p=>p.name===e.name))prs.push({name:e.name,weight:toDisp(kg,unit)});});
       if(e.hitTop)toIncrease.push(e.name);
       return{name:e.name,rHi:e.rHi||null,type:e.type,notes:e.notes||'',
         sets:e.logged.map(s=>({kg:s.kg||0,reps:s.reps||0,rpe:s.rpe,t:s.t!=null?s.t:null}))};
@@ -911,8 +1005,8 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
       <div style={{flex:1,overflowY:'scroll',WebkitOverflowScrolling:'touch',padding:'16px 16px 8px'}}>
         {/* Completed sets log */}
         {cur.logged.length>0&&<div style={{marginBottom:16}}>
-          <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Completed</div>
-          {cur.logged.map((s,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'rgba(125,211,252,0.08)',border:'1px solid rgba(125,211,252,0.2)',borderRadius:8,marginBottom:6}}>
+          <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Completed &mdash; tap a set to edit</div>
+          {cur.logged.map((s,i)=><div key={i} onClick={()=>openEdit(i)} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'rgba(125,211,252,0.08)',border:'1px solid rgba(125,211,252,0.2)',borderRadius:8,marginBottom:6}}>
             <span style={{fontSize:16,color:G}}>&#10003;</span>
             <div style={{flex:1,fontSize:14,color:'#888'}}>Set {i+1}</div>
             {cur.type!=='Plyo'&&cur.type!=='Distance'&&cur.type!=='Interval'&&<div style={{fontSize:15,fontWeight:700,color:'#ccc'}}>{s.w}{unit}</div>}
@@ -923,6 +1017,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
               {lEx&&lEx.sets&&lEx.sets[i]&&lEx.sets[i].t!=null&&s.t>lEx.sets[i].t&&<span style={{fontSize:11,color:'#6B7280'}}>+{s.t-lEx.sets[i].t}s</span>}
             </div>}
             {s.rpe&&<div style={{fontSize:12,color:'#555'}}>RPE {s.rpe}</div>}
+                <span style={{fontSize:13,color:'#555'}}>&#9998;</span>
           </div>)}
         </div>}
 
@@ -994,7 +1089,10 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
             <div style={{fontSize:11,color:'#444',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:2}}>Rest</div>
             <div style={{fontSize:26,fontWeight:800,color:A,fontVariantNumeric:'tabular-nums'}}>{fmtTime(secs)}</div>
           </div>
-          <button onClick={stopRest} style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#555',fontSize:13,padding:'8px 14px',cursor:'pointer',fontFamily:'inherit'}}>Skip</button>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>addRest(30)} style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#9CA3AF',fontSize:13,padding:'8px 12px',cursor:'pointer',fontFamily:'inherit'}}>+30s</button>
+            <button onClick={stopRest} style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#555',fontSize:13,padding:'8px 14px',cursor:'pointer',fontFamily:'inherit'}}>Skip</button>
+          </div>
         </div>}
 
         {/* Notes (shown after all sets done) */}
@@ -1026,6 +1124,26 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
           Cancel Workout
         </button>
       </div>
+
+      {/* Edit a logged set */}
+      {editIdx!==null&&cur.logged[editIdx]&&<>
+        <div onClick={()=>setEditIdx(null)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.7)',zIndex:12}}/>
+        <div style={{position:'absolute',left:0,right:0,bottom:0,background:'#111',borderRadius:'20px 20px 0 0',zIndex:13,padding:'18px 20px 34px'}}>
+          <div style={{fontSize:16,fontWeight:800}}>Edit Set {editIdx+1}</div>
+          <div style={{fontSize:12,color:'#6B7280',marginTop:2,marginBottom:14}}>{cur.name}</div>
+          <div style={{display:'flex',gap:10}}>
+            {cur.type==='Distance'?edField('Time (m:ss)','t','text'):<>
+              {isRepType(cur)&&edField(unit==='kg'?'Kg':'Lbs','w','decimal')}
+              {edField(cur.type==='Interval'?'Metres':'Reps','r','numeric')}
+            </>}
+          </div>
+          <div style={{display:'flex',gap:10,marginTop:16}}>
+            <button onClick={deleteSet} style={{flex:1,height:48,borderRadius:12,border:'1px solid '+R,background:'transparent',color:R,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Delete set</button>
+            <button onClick={saveEdit} style={{flex:2,height:48,borderRadius:12,border:'none',background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#fff',fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>Save</button>
+          </div>
+          <button onClick={()=>setEditIdx(null)} style={{width:'100%',height:40,marginTop:8,borderRadius:10,border:'none',background:'transparent',color:'#6B7280',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+        </div>
+      </>}
 
       {/* Exercise list - jump to any exercise */}
       {showList&&<>
@@ -1137,27 +1255,86 @@ function WorkoutComplete({entry,unit,prs,duration,toIncrease,onHome}){
 }
 
 // ── PROGRESS ──────────────────────────────────────────────────────────────────
-function Progress({hist,unit}){
+function Progress({hist,unit,onUpdate}){
   const [open,setOpen]=useState(null);
+  const [editing,setEditing]=useState(false);
+  const [ed,setEd]=useState(null); // {hi,ej,sk,w,r,t}
+  const [delConfirm,setDelConfirm]=useState(false);
+  const isRep=e=>e.type!=='Plyo'&&e.type!=='Distance'&&e.type!=='Interval';
+  const fmtSet=(e,st)=>e.type==='Distance'?((st.reps||0)+'m'+(st.t!=null?' in '+fmtTime(st.t):'')):e.type==='Interval'?((st.reps||0)+'m'):e.type==='Plyo'?((st.reps||0)+' reps'):((st.kg?toDisp(st.kg,unit)+unit+' × '+st.reps:st.reps+' reps')+(st.rpe?' @'+st.rpe:''));
+  function toggle(i){setOpen(open===i?null:i);setEditing(false);setEd(null);setDelConfirm(false);}
+  function openSet(hi,ej,sk){const st=hist[hi].exercises[ej].sets[sk];setEd({hi,ej,sk,w:st.kg?String(toDisp(st.kg,unit)):'',r:String(st.reps||''),t:st.t!=null?fmtTime(st.t):''});}
+  function commit(hi,exercises){
+    const ex=exercises.filter(e=>e.sets.length||e.notes);
+    const vol=Math.round(ex.reduce((a,e)=>a+e.sets.reduce((b,st)=>b+(st.kg||0)*(st.reps||0),0),0));
+    onUpdate(hi,{...hist[hi],exercises:ex,vol});setEd(null);
+  }
+  function saveSet(){
+    const {hi,ej,sk}=ed;const e=hist[hi].exercises[ej];let ns={...e.sets[sk]};
+    if(e.type==='Distance'){
+      const m=/^(\d+):(\d{1,2})$/.exec(ed.t.trim());const t=m?(+m[1])*60+(+m[2]):parseFloat(ed.t);
+      if(!(t>0))return;ns.t=Math.round(t);
+    }else{
+      const r=parseFloat(ed.r)||0;if(!r)return;ns.reps=r;
+      if(isRep(e)){const w=parseFloat(ed.w)||0;ns.kg=w*(unit==='kg'?1:0.4536);}
+    }
+    commit(hi,hist[hi].exercises.map((x,j)=>j!==ej?x:{...x,sets:x.sets.map((y,k)=>k===sk?ns:y)}));
+  }
+  function deleteSet(){const {hi,ej,sk}=ed;commit(hi,hist[hi].exercises.map((x,j)=>j!==ej?x:{...x,sets:x.sets.filter((y,k)=>k!==sk)}));}
+  function deleteSession(i){onUpdate(i,null);setOpen(null);setEditing(false);setDelConfirm(false);}
+  const edEx=ed&&hist[ed.hi]&&hist[ed.hi].exercises[ed.ej];
+  const field=(label,key,mode)=>(
+    <div style={{flex:1}}>
+      <div style={{fontSize:11,color:'#6B7280',fontWeight:600,marginBottom:6,textAlign:'center'}}>{label}</div>
+      <input value={ed[key]} onChange={e=>setEd({...ed,[key]:e.target.value})} type="text" inputMode={mode} autoComplete="off"
+        style={{width:'100%',height:52,background:'#0A0A0A',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:20,fontWeight:700,textAlign:'center',outline:'none'}}/>
+    </div>);
+  const smallBtn={flex:1,height:40,borderRadius:10,border:'1px solid '+B,background:'#1E1E1E',color:'#E5E7EB',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'};
   return(
     <FS scroll>
       <div style={{padding:'60px 20px 20px'}}>
-        <div style={{fontSize:22,fontWeight:800,marginBottom:12}}>Progress</div>
+        <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Progress</div>
+        {hist.length>0&&<div style={{fontSize:12,color:'#6B7280',marginBottom:12}}>Tap a session to see it, then Edit sets to fix anything logged wrong.</div>}
         {!hist.length&&<div style={{textAlign:'center',padding:'60px 0',color:'#6B7280',fontSize:14}}>No sessions yet.</div>}
-        {hist.map((h,i)=><Card key={i} style={{marginBottom:10,cursor:'pointer'}} onClick={()=>setOpen(open===i?null:i)} ch={<>
+        {hist.map((h,i)=><Card key={i} style={{marginBottom:10,cursor:'pointer'}} onClick={()=>toggle(i)} ch={<>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
             <div><div style={{fontSize:14,fontWeight:700,marginBottom:2}}>{h.label}</div><div style={{fontSize:12,color:'#9CA3AF'}}>{fmtDate(h.date)}</div></div>
-            <div style={{textAlign:'right'}}>{h.vol?<><div style={{fontSize:13,fontWeight:800,color:A}}>{toDisp(h.vol,unit)} {unit}</div><div style={{fontSize:10,color:'#6B7280'}}>volume</div></>:<><div style={{fontSize:13,fontWeight:800,color:A}}>{h.exercises?h.exercises.reduce((a,e)=>a+e.sets.length,0):0}</div><div style={{fontSize:10,color:'#6B7280'}}>sets</div></>}</div>
+            <div style={{textAlign:'right'}}>{h.vol?<><div style={{fontSize:13,fontWeight:800,color:A}}>{toDisp(h.vol,unit)} {unit}</div><div style={{fontSize:10,color:'#6B7280'}}>volume</div></>:<><div style={{fontSize:13,fontWeight:800,color:A}}>{(h.exercises||[]).reduce((a,e)=>a+e.sets.length,0)}</div><div style={{fontSize:10,color:'#6B7280'}}>sets</div></>}</div>
           </div>
-          {open===i&&h.exercises&&<div style={{marginTop:10,paddingTop:10,borderTop:'1px solid '+B,display:'flex',flexDirection:'column',gap:7}}>
+          {open===i&&h.exercises&&<div onClick={e=>e.stopPropagation()} style={{marginTop:10,paddingTop:10,borderTop:'1px solid '+B,display:'flex',flexDirection:'column',gap:8,cursor:'default'}}>
             {h.exercises.map((e,j)=><div key={j}>
               <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>{e.name}</div>
-              <div style={{fontSize:11,color:'#9CA3AF'}}>{e.sets.map((s,k)=>'Set '+(k+1)+': '+(s.kg?toDisp(s.kg,unit)+unit+' x'+s.reps:s.reps+' reps')+(s.rpe?' @'+s.rpe:'')).join(' \u00b7 ')}</div>
+              {editing?<div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:4}}>
+                {e.sets.map((st,k)=><button key={k} onClick={()=>openSet(i,j,k)} style={{padding:'7px 10px',borderRadius:8,background:'#1E1E1E',border:'1px solid '+A,color:'#E5E7EB',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{'Set '+(k+1)+': '+fmtSet(e,st)} &#9998;</button>)}
+              </div>
+              :<div style={{fontSize:11,color:'#9CA3AF'}}>{e.sets.map((st,k)=>'Set '+(k+1)+': '+fmtSet(e,st)).join(' · ')}</div>}
               {e.notes&&<div style={{fontSize:11,color:'#6B7280',marginTop:2,fontStyle:'italic'}}>&#128221; {e.notes}</div>}
             </div>)}
+            <div style={{display:'flex',gap:8,marginTop:6}}>
+              <button onClick={()=>{setEditing(!editing);setDelConfirm(false);}} style={{...smallBtn,color:editing?'#000':'#E5E7EB',background:editing?A:'#1E1E1E'}}>{editing?'Done':'Edit sets'}</button>
+              {editing&&<button onClick={()=>delConfirm?deleteSession(i):setDelConfirm(true)} style={{...smallBtn,border:'1px solid '+R,background:'transparent',color:R}}>{delConfirm?'Tap again to delete':'Delete session'}</button>}
+            </div>
           </div>}
         </>}/>)}
       </div>
+      {ed&&edEx&&<>
+        <div onClick={()=>setEd(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:10000}}/>
+        <div style={{position:'fixed',left:0,right:0,bottom:0,background:'#111',borderRadius:'20px 20px 0 0',zIndex:10001,padding:'18px 20px 34px'}}>
+          <div style={{fontSize:16,fontWeight:800}}>Edit Set {ed.sk+1}</div>
+          <div style={{fontSize:12,color:'#6B7280',marginTop:2,marginBottom:14}}>{edEx.name} &bull; {hist[ed.hi].label}</div>
+          <div style={{display:'flex',gap:10}}>
+            {edEx.type==='Distance'?field('Time (m:ss)','t','text'):<>
+              {isRep(edEx)&&field(unit==='kg'?'Kg':'Lbs','w','decimal')}
+              {field(edEx.type==='Interval'?'Metres':'Reps','r','numeric')}
+            </>}
+          </div>
+          <div style={{display:'flex',gap:10,marginTop:16}}>
+            <button onClick={deleteSet} style={{flex:1,height:48,borderRadius:12,border:'1px solid '+R,background:'transparent',color:R,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Delete set</button>
+            <button onClick={saveSet} style={{flex:2,height:48,borderRadius:12,border:'none',background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#fff',fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>Save</button>
+          </div>
+          <button onClick={()=>setEd(null)} style={{width:'100%',height:40,marginTop:8,borderRadius:10,border:'none',background:'transparent',color:'#6B7280',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+        </div>
+      </>}
     </FS>
   );
 }
@@ -1524,7 +1701,7 @@ function App(){
         {screen==='home'&&<Home planId={planId} hist={hist} streak={streak} onStart={sess=>startSess(sess,planId)} onSettings={()=>setScreen('settings')}/>}
         {screen==='programmes'&&<Programmes planId={planId} onStart={(sess,pid)=>startSess(sess,pid)}/>}
         {screen==='session'&&aS&&<SessionOverview planId={aS.planId} sess={aS.sess} hist={hist} unit={unit} swaps={swaps} onSaveSwap={saveSwap} onBegin={()=>setScreen('workout')} onBack={()=>{setScreen(tab);setAS(null);}} oneRM={oneRM}/>}
-        {screen==='progress'&&<Progress hist={hist} unit={unit}/>}
+        {screen==='progress'&&<Progress hist={hist} unit={unit} onUpdate={(i,en)=>{const nh=en?hist.map((h,j)=>j===i?en:h):hist.filter((h,j)=>j!==i);setHist(nh);sv(K.hi,nh);}}/>}
         {screen==='nutrition'&&<Nutrition saved={nutrIn} savedRes={nutrRes} onSave={v=>{setNutrIn(v);sv(K.nu,v);}} onSaveRes={v=>{setNutrRes(v);sv(K.nr,v);}}/>}
         {screen==='settings'&&<Settings name={name} unit={unit} planId={planId} onSave={savePrefs} email={authUser&&authUser.email} onSignOut={()=>sb.auth.signOut()}
           onReset={pid=>{const nh=hist.filter(h=>h.planId!==pid);setHist(nh);sv(K.hi,nh);setStreak(s=>({...s,cur:0}));if(pid==='pl'){setOneRM(DEF_PR);sv(K.pr,DEF_PR);}setScreen('home');setTab('home');}}
