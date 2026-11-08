@@ -61,10 +61,9 @@ const ALT={
   'Seated Leg Curl':['Lying Leg Curl','Single-Leg Lying Leg Curl','Standing Leg Curl','Nordic Curl'],
   'Lying Leg Curl Machine':['Seated Leg Curl','Single-Leg Lying Leg Curl','Standing Leg Curl','Nordic Curl'],
   'Cable Donkey Kick':['Machine Glute Kickback','Hip Thrust','Banded Glute Kickback'],
-  'Sled Push':['Leg Press','Hack Squat Machine'],
-  'Leg Press':['Sled Push','Hack Squat Machine'],
-  'Sled Pull':['Close Grip Seated Row','Chest-Supported Machine Row'],
-  'Close Grip Seated Row':['Sled Pull','Chest-Supported Machine Row'],
+  'Sled Push':['Leg Press'],
+  'Sled Pull':['Close Grip Seated Row'],
+  'Sit Ups':['Cable Crunch','Knee Raises'],
   'VO2 Max Intervals — Run':['VO2 Max Intervals — Row'],
   'VO2 Max Intervals — Row':['VO2 Max Intervals — Run'],
   'Paused Bench Press':['Close-Grip Bench Press'],
@@ -209,10 +208,10 @@ const PROGS={
       interval('Threshold Run',3,600,120,'Warm up 10 min easy first, cool down 5-10 min after. Run each 10 min block at threshold: comfortably hard, roughly 10k race effort (RPE 7-8) - you can say a few words but not hold a conversation. 2 min easy jog between blocks. Log distance covered each block to track progress.')
     ]},
     {key:'hx_d2',label:'Day 2 • Strength',exercises:[
-      ex('Sled Push',3,8,10,'Compound',9,'Heavy. 8-10 controlled drives/reps with a load you can only just finish. No sled? Swap to Leg Press (use the swap button) and do 8-10 heavy reps.',180),
-      ex('Sled Pull',3,8,10,'Compound',9,'Heavy, hand-over-hand, lean back and drive with the legs. No sled? Swap to Close Grip Seated Row and do 8-10 heavy reps.',180),
-      ex('Romanian Deadlift',3,6,8,'Compound',9,'Heavy. Hinge from the hips, bar close to the legs, feel the hamstrings load. Stop 1-2 reps before form breaks.',180),
-      ex('Cable Crunch',3,10,15,'Isolation',9,'Round the spine and pull the ribs to the hips. Take it to failure.',120)
+      {...dist('Sled Push',3,50,180,'50 m at 150 kg (including the sled). Low drive position, short powerful steps. No sled? Use the swap button for Leg Press: 3 sets of 8-10 heavy reps.'),alts:{'Leg Press':{type:'Compound',rLo:8,rHi:10,rpe:9,rest:180,cue:'Heavy. 3 sets of 8-10 reps, controlled with full range of motion. Take the last set close to failure.'}}},
+      {...dist('Sled Pull',3,50,180,'50 m at 100 kg (including the sled). Hand-over-hand, lean back and drive with the legs. No sled? Use the swap button for Close Grip Seated Row: 3 sets of 8-10 heavy reps.'),alts:{'Close Grip Seated Row':{type:'Compound',rLo:8,rHi:10,rpe:9,rest:180,cue:'Heavy. 3 sets of 8-10 reps, chest up, pull to the lower ribs and squeeze. Take the last set close to failure.'}}},
+      ex('Romanian Deadlift',2,6,8,'Compound',9,'Heavy. Hinge from the hips, bar close to the legs, feel the hamstrings load. Stop 1-2 reps before form breaks.',180),
+      ex('Sit Ups',3,10,15,'Isolation',9,'Controlled reps, take each set to failure. Swap to Cable Crunch or Knee Raises if you prefer.',120)
     ]},
     {key:'hx_d3',label:'Day 3 • Ski + Row',exercises:[
       dist('SkiErg',1,5000,180,'5 km at an easy, conversational pace. Smooth rhythm, drive with the lats and hinge from the hips. The timer runs while you work, so just keep it steady.'),
@@ -620,15 +619,16 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack,
         <div style={{fontSize:13,color:'#9CA3AF',marginBottom:10}}>{sess.exercises.length} exercises &bull; {sess.exercises.reduce((a,e)=>a+e.sets,0)} sets</div>
       </div>
       <div style={{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',padding:'4px 20px 12px'}}>
-        {sess.exercises.map((e,i)=>{
-          const name=nm(e,i),swapped=name!==e.name;
+        {sess.exercises.map((e0,i)=>{
+          const name=nm(e0,i),swapped=name!==e0.name;
+          const e=(swapped&&e0.alts&&e0.alts[name])?{...e0,...e0.alts[name]}:e0;
           const lh=hist.find(h=>h.label===sess.label&&h.exercises&&h.exercises.find(x=>x.name===name));
           const le=lh&&lh.exercises.find(x=>x.name===name);
           return<Card key={i} style={{marginBottom:10}} ch={<>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
               <div style={{fontSize:14,fontWeight:700,color:swapped?A:'#fff',flex:1}}>{name}</div>
               {e.type!=='Plyo'&&e.type!=='Distance'&&le&&le.sets.some(s=>s.reps>=e.rHi)&&<span style={{color:A,fontSize:12}}>&#8593;</span>}
-              {e.type!=='Plyo'&&e.type!=='Distance'&&ALT[e.name]&&ALT[e.name].length>0&&<Btn onClick={()=>setSwapIdx(swapIdx===i?null:i)} ch="&#8644;"
+              {(e.type!=='Plyo'&&e.type!=='Distance'||e.alts)&&ALT[e.name]&&ALT[e.name].length>0&&<Btn onClick={()=>setSwapIdx(swapIdx===i?null:i)} ch="&#8644;"
                 style={{width:26,height:26,borderRadius:'50%',background:'#1E1E1E',border:'1px solid '+B,color:'#9CA3AF',fontSize:13}}/>}
             </div>
             {e.type==='Plyo'||e.type==='Distance'?<>
@@ -666,6 +666,8 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack,
             {(ALT[sess.exercises[swapIdx]&&sess.exercises[swapIdx].name]||[]).map((alt,j)=>
               <div key={j} onClick={()=>{onSaveSwap(sk(swapIdx),alt);setSwapIdx(null);}}
                 style={{padding:'11px 14px',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600,background:'#1E1E1E',border:'1px solid '+B}}>{alt}</div>)}
+            {swaps&&swaps[sk(swapIdx)]&&<div onClick={()=>{onSaveSwap(sk(swapIdx),null);setSwapIdx(null);}}
+              style={{padding:'11px 14px',borderRadius:10,cursor:'pointer',fontSize:13,fontWeight:600,background:'transparent',border:'1px dashed '+B,color:'#9CA3AF'}}>Reset to {sess.exercises[swapIdx]&&sess.exercises[swapIdx].name}</div>}
           </div>
         </div>
       </>}
@@ -676,8 +678,8 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack,
 // ── ACTIVE WORKOUT ────────────────────────────────────────────────────────────
 function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,oneRM,onSetPR}){
   const skKey=(i)=>planId+'_'+sess.label+'_'+i;
-  const buildEx=()=>sess.exercises.map((e,i)=>{
-    const name=(swaps&&swaps[skKey(i)])||e.name;
+  const buildOne=(e0,i,name)=>{
+    const e=(name!==e0.name&&e0.alts&&e0.alts[name])?{...e0,...e0.alts[name]}:e0;
     if(e.type==='Plyo'||e.type==='Distance'){
       return{...e,name,base:e.name,ei:i,pb:null,atb:null,
         pn:lastNotes(hist,sess.label,name),notes:'',
@@ -695,7 +697,8 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
       logged:[],  // completed sets
       curW:target!=null?String(toDisp(target,unit)):(pb!=null?String(toDisp(pb,unit)):''),
       curR:'',curRpe:''};
-  });
+  };
+  const buildEx=()=>sess.exercises.map((e0,i)=>buildOne(e0,i,(swaps&&swaps[skKey(i)])||e0.name));
 
   // All hooks first
   const [exs,setExs]=useState(buildEx);
@@ -798,6 +801,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     onSaveSwap(skKey(cur.ei),nm);
     setExs(p=>p.map((e,i)=>{
       if(i!==ei)return e;
+      if(sess.exercises[i]&&sess.exercises[i].alts)return buildOne(sess.exercises[i],i,nm);
       if(e.type==='Interval'){
         return{...e,name:nm,pb:prevBestMetres(hist,sess.label,nm),atb:allBestMetres(hist,nm),pn:lastNotes(hist,sess.label,nm)};
       }
@@ -875,7 +879,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
               {lEx&&lEx.sets&&lEx.sets.some(s=>s.reps>=cur.rHi)&&<div style={{fontSize:12,color:A,fontWeight:600,marginTop:4}}>&#8593; You maxed reps last time — add weight today</div>}
             </>}
           </div>
-          {cur.type!=='Plyo'&&cur.type!=='Distance'&&(cur.name!==cur.base||(ALT[cur.base]&&ALT[cur.base].length>0))&&<button onClick={()=>setShowSwap(true)}
+          {(cur.type!=='Plyo'&&cur.type!=='Distance'||cur.alts)&&(cur.name!==cur.base||(ALT[cur.base]&&ALT[cur.base].length>0))&&<button onClick={()=>setShowSwap(true)}
             style={{background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,color:'#666',fontSize:12,padding:'7px 10px',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
             &#8644; Swap
           </button>}
