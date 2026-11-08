@@ -61,6 +61,10 @@ const ALT={
   'Seated Leg Curl':['Lying Leg Curl','Single-Leg Lying Leg Curl','Standing Leg Curl','Nordic Curl'],
   'Lying Leg Curl Machine':['Seated Leg Curl','Single-Leg Lying Leg Curl','Standing Leg Curl','Nordic Curl'],
   'Cable Donkey Kick':['Machine Glute Kickback','Hip Thrust','Banded Glute Kickback'],
+  'Sled Push':['Leg Press','Hack Squat Machine'],
+  'Leg Press':['Sled Push','Hack Squat Machine'],
+  'Sled Pull':['Close Grip Seated Row','Chest-Supported Machine Row'],
+  'Close Grip Seated Row':['Sled Pull','Chest-Supported Machine Row'],
   'VO2 Max Intervals — Run':['VO2 Max Intervals — Row'],
   'VO2 Max Intervals — Row':['VO2 Max Intervals — Run'],
   'Paused Bench Press':['Close-Grip Bench Press'],
@@ -200,35 +204,35 @@ const PROGS={
       plyo('Drop Push-Ups',4,5,150,'Hands start elevated on two stable low supports — drop into the push-up and rebound explosively')
     ]}
   ]},
-  hyrox:{id:'hyrox',name:'HYROX',short:'HYROX',freq:'4x / week',sessions:[
-    {key:'strength_base',label:'Strength Base',noRestBetweenExercises:true,exercises:[
-      ex('Back Squat',3,3,5,'Compound',9,'',180),
-      ex('Bench Press',3,3,5,'Compound',9,'',180),
-      ex('Conventional Deadlift',2,3,5,'Compound',9,'',180),
-      ex('Pendlay Row',3,3,5,'Compound',9,'',180)
+  hyrox:{id:'hyrox',name:'HYROX',short:'HYROX',freq:'4x / week + 2 optional runs',sessions:[
+    {key:'hx_d1',label:'Day 1 • Threshold Run',exercises:[
+      interval('Threshold Run',3,600,120,'Warm up 10 min easy first, cool down 5-10 min after. Run each 10 min block at threshold: comfortably hard, roughly 10k race effort (RPE 7-8) - you can say a few words but not hold a conversation. 2 min easy jog between blocks. Log distance covered each block to track progress.')
     ]},
-    {key:'compromised_1',label:'Compromised — Stations A',exercises:[
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      dist('Sled Push',3,50,45,'Low drive position, short powerful steps. Open: 152kg men / 102kg women (incl. sled)'),
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      dist('SkiErg',3,500,45,'Drive down with lats, hinge from hips'),
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      dist('Sandbag Lunges',3,100,45,'Sandbag on back, upright torso, full step. Open: 20kg men / 10kg women'),
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      ex('Wall Balls',3,20,25,'Compound',8,'Open: 6kg men / 4kg women, 3m target men / 2.7m target women')
+    {key:'hx_d2',label:'Day 2 • Strength',exercises:[
+      ex('Sled Push',3,8,10,'Compound',9,'Heavy. 8-10 controlled drives/reps with a load you can only just finish. No sled? Swap to Leg Press (use the swap button) and do 8-10 heavy reps.',180),
+      ex('Sled Pull',3,8,10,'Compound',9,'Heavy, hand-over-hand, lean back and drive with the legs. No sled? Swap to Close Grip Seated Row and do 8-10 heavy reps.',180),
+      ex('Romanian Deadlift',3,6,8,'Compound',9,'Heavy. Hinge from the hips, bar close to the legs, feel the hamstrings load. Stop 1-2 reps before form breaks.',180),
+      ex('Cable Crunch',3,10,15,'Isolation',9,'Round the spine and pull the ribs to the hips. Take it to failure.',120)
     ]},
-    {key:'compromised_2',label:'Compromised — Stations B',exercises:[
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      dist('Sled Pull',3,50,45,'Hand-over-hand, lean back, drive with legs. Open: 103kg men / 78kg women (incl. sled)'),
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      dist('Farmers Carry',3,200,45,'Tall posture, brace core, controlled steps. Open: 24kg/hand men / 16kg/hand women'),
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      dist('Burpee Broad Jumps',3,80,45,'Chest to floor, jump forward for distance'),
-      dist('Run',1,500,30,'Steady pace — arrive at station fatigued, not gassed'),
-      dist('Rowing',3,500,45,'Legs-back-arms, controlled slide')
+    {key:'hx_d3',label:'Day 3 • Ski + Row',exercises:[
+      dist('SkiErg',1,5000,180,'5 km at an easy, conversational pace. Smooth rhythm, drive with the lats and hinge from the hips. The timer runs while you work, so just keep it steady.'),
+      dist('Rowing',1,5000,120,'5 km at an easy, conversational pace. Legs-back-arms, controlled slide. Steady, not a race.')
     ]},
-    {key:'run_vo2max',label:'Run — VO2 Max Intervals',exercises:[
-      interval('VO2 Max Intervals — Run',4,240,180,'Norwegian 4x4 — 90-95% max HR, hard but controlled (RPE 9). 3min easy jog recovery between rounds. Log distance covered each round to track progression.')
+    {key:'hx_d4',label:'Day 4 • Compromised Run',exercises:[
+      dist('Run',1,1000,30,'1 km at race pace - this is the pace you want to hold on race day.'),
+      dist('Burpee Broad Jumps',1,80,30,'80 m. Chest to floor, jump forward for distance. Keep a rhythm you can hold.'),
+      dist('Run',1,1000,30,'1 km at race pace, straight off the station.'),
+      dist('Farmers Carry',1,200,30,'200 m with 24 kg in each hand. Tall posture, brace the core, controlled steps.'),
+      dist('Run',1,1000,30,'1 km at race pace, straight off the station.'),
+      dist('Sandbag Lunges',1,100,30,'100 m with a 20 kg sandbag. Upright torso, full step.'),
+      dist('Run',1,1000,30,'1 km at race pace, straight off the station.'),
+      ex('Wall Balls',1,100,100,'Compound',9,'100 reps with a 6 kg ball. Break it up early (sets of 20-25) rather than fail late. Log the weight and reps you completed.',120)
+    ]},
+    {key:'hx_opt_vo2',label:'Optional • VO2 Max 4x4',optional:true,exercises:[
+      interval('VO2 Max Intervals — Run',4,240,180,'Norwegian 4x4 - 90-95% max HR, hard but controlled (RPE 9). 3 min easy jog recovery between rounds. Warm up 10 min first. Log distance covered each round to track progression.')
+    ]},
+    {key:'hx_opt_long',label:'Optional • Long Run',optional:true,exercises:[
+      {...interval('Long Run — Easy Pace',1,3600,0,'60 min at a genuinely easy, conversational pace (RPE 3-4). Slower is fine - this builds your aerobic base. Log total distance covered.'),easy:true}
     ]}
   ]},
   pl:{id:'pl',name:'Powerlifting Peaking Block',short:'Power',freq:'4x / week',sessions:buildPLSessions()}
@@ -262,7 +266,7 @@ function allBest(hist,name){let b=null;for(const h of hist){const e=h.exercises&
 function prevBestMetres(hist,label,name){for(const h of hist){if(h.label!==label)continue;const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ms=e.sets.map(s=>s.reps||0).filter(m=>m>0);if(ms.length)return Math.max(...ms);}}return null;}
 function allBestMetres(hist,name){let b=null;for(const h of hist){const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.sets&&e.sets.length){const ms=e.sets.map(s=>s.reps||0).filter(m=>m>0);if(ms.length){const m=Math.max(...ms);if(b===null||m>b)b=m;}}}return b;}
 function lastNotes(hist,label,name){for(const h of hist){if(h.label!==label)continue;const e=h.exercises&&h.exercises.find(x=>x.name===name);if(e&&e.notes)return e.notes;}return '';}
-function nextSess(pid,hist){const ss=PROGS[pid].sessions;const ph=hist.filter(h=>h.planId===pid);if(!ph.length)return ss[0].label;const idx=ss.findIndex(s=>s.label===ph[0].label);return ss[(idx<0?0:idx+1)%ss.length].label;}
+function nextSess(pid,hist){const ss=PROGS[pid].sessions;const core=ss.filter(s=>!s.optional);const ph=hist.filter(h=>h.planId===pid);if(!ph.length)return core[0].label;const lc=ph.find(h=>core.some(s=>s.label===h.label));if(!lc)return core[0].label;const idx=core.findIndex(s=>s.label===lc.label);return core[(idx+1)%core.length].label;}
 
 // ── SHARED UI ──────────────────────────────────────────────────────────────────
 const Btn=({onClick,ch,style,dis})=><button onClick={onClick} disabled={!!dis} style={{opacity:dis?0.5:1,display:'flex',alignItems:'center',justifyContent:'center',...style}}>{ch}</button>;
@@ -557,12 +561,12 @@ function Home({planId,hist,streak,onStart,onSettings}){
             style={{width:'100%',height:50,borderRadius:12,background:'linear-gradient(135deg,#0C4A6E,'+A+')',color:'#000',fontSize:16,fontWeight:800}}/>
         </>} style={{marginBottom:16}}/>
         <div style={{fontSize:12,fontWeight:700,marginBottom:8}}>All Sessions</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat('+prog.sessions.length+',1fr)',gap:8}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat('+(prog.id==='hyrox'?3:prog.sessions.length)+',1fr)',gap:8}}>
           {prog.sessions.map((s,i)=>{
             const isSel=s.label===active,isRec=s.label===rec;
             return<div key={i} onClick={()=>setSel(s.label===sel?null:s.label)}
               style={{padding:'9px 6px',borderRadius:12,textAlign:'center',cursor:'pointer',
-                background:isSel?'rgba(56,189,248,0.15)':'transparent',border:'1px solid '+(isSel?A:B)}}>
+                background:isSel?'rgba(56,189,248,0.15)':'transparent',border:'1px '+(s.optional&&!isSel?'dashed':'solid')+' '+(isSel?A:B)}}>
               <div style={{fontSize:12,fontWeight:700,color:isSel?'#fff':'#9CA3AF'}}>{s.label}</div>
               {isRec&&!isSel&&<div style={{fontSize:9,color:A,marginTop:1}}>&#9658; next</div>}
             </div>;
@@ -631,7 +635,7 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack,
               <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.type==='Distance'?e.metres+' metres':e.reps+' reps'}</div>
               <div style={{fontSize:11,color:'#6B7280'}}>{e.cue}</div>
             </>:e.type==='Interval'?<>
-              <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {fmtTime(e.workS)} hard &bull; {fmtTime(e.rest)} easy</div>
+              <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.easy?fmtTime(e.workS)+' easy pace':e.sets+' sets \u00d7 '+fmtTime(e.workS)+' hard \u2022 '+fmtTime(e.rest)+' easy'}</div>
               <div style={{fontSize:11,color:'#6B7280'}}>{e.cue}</div>
             </>:<>
               <div style={{fontSize:12,color:'#9CA3AF',marginBottom:2}}>{e.sets} sets &times; {e.rLo}&ndash;{e.rHi} reps</div>
@@ -859,7 +863,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
               {cur.cue&&<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.cue}</div>}
               {lEx&&lEx.sets&&lEx.sets.some(s=>s.t!=null)&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Fastest last time: <span style={{color:'#888',fontWeight:600}}>{fmtTime(Math.min(...lEx.sets.filter(s=>s.t!=null).map(s=>s.t)))}</span></div>}
             </>:cur.type==='Interval'?<>
-              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {fmtTime(cur.workS)} hard &bull; {fmtTime(cur.rest)} easy</div>
+              <div style={{fontSize:13,color:'#555'}}>{cur.easy?fmtTime(cur.workS)+' easy pace':cur.sets+' sets \u2022 '+fmtTime(cur.workS)+' hard \u2022 '+fmtTime(cur.rest)+' easy'}</div>
               {cur.cue&&<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.cue}</div>}
               {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{cur.pb}m</span></div>}
             </>:<>
@@ -930,7 +934,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
           <>
             <div style={{background:'#111',border:'1px solid #2A2A2A',borderRadius:10,padding:'22px 16px',marginBottom:16,textAlign:'center'}}>
               <div style={{fontSize:36,fontWeight:800,color:'#fff'}}>{fmtTime(cur.workS)}</div>
-              <div style={{fontSize:13,color:'#555',fontWeight:600,marginTop:2}}>hard effort — log metres covered after</div>
+              <div style={{fontSize:13,color:'#555',fontWeight:600,marginTop:2}}>{cur.easy?'easy effort':'hard effort'} — log metres covered after</div>
             </div>
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>Metres covered</div>
