@@ -708,6 +708,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
   const [secs,setSecs]=useState(0);
   const [totSecs,setTotSecs]=useState(0);
   const [showCancel,setShowCancel]=useState(false);
+  const [showList,setShowList]=useState(false);
   const [workSecs,setWorkSecs]=useState(0);
   const tmr=useRef(null);
   const t0=useRef(Date.now());
@@ -721,8 +722,13 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
   const setsDone=cur.logged.length;
   const setsTotal=cur.sets;
   const allSetsDone=setsDone>=setsTotal;
-  const isLastEx=ei===exs.length-1;
-  const pct=Math.round(((ei)/exs.length)*100 + (setsDone/setsTotal)*(100/exs.length));
+  // Skip & come back: the next exercise is the next unfinished one after this, wrapping round to any skipped earlier
+  const unfinished=j=>exs[j].logged.length<exs[j].sets;
+  const nextIdx=(()=>{for(let k=1;k<exs.length;k++){const j=(ei+k)%exs.length;if(unfinished(j))return j;}return -1;})();
+  const isLastEx=nextIdx===-1;
+  const doneCount=exs.filter(x=>x.logged.length>=x.sets).length;
+  const loggedSets=exs.reduce((a,x)=>a+Math.min(x.logged.length,x.sets),0);
+  const pct=Math.round(loggedSets/Math.max(1,exs.reduce((a,x)=>a+x.sets,0))*100);
 
   // Auto stopwatch for Distance-type sets — starts once rest has ended (or immediately if no rest is active), stops on Log Set
   const resting=secs>0;
@@ -793,8 +799,17 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     }
   }
 
+  function goTo(j){
+    if(j<0||j>=exs.length)return;
+    setEi(j);setPr(null);stopRest();setShowList(false);setShowSwap(false);
+  }
   function nextExercise(){
-    if(ei<exs.length-1){setEi(i=>i+1);setPr(null);stopRest();}
+    if(nextIdx!==-1)goTo(nextIdx);
+  }
+  function skipExercise(){
+    if(nextIdx===-1)return;
+    setExs(p=>p.map((x,i)=>i!==ei?x:{...x,skipped:true}));
+    goTo(nextIdx);
   }
 
   function doSwap(nm){
@@ -834,7 +849,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     actionFn=finish;
     actionStyle={background:'#10B981'};
   } else if(allSetsDone){
-    actionLabel='Next Exercise \u203a';
+    actionLabel=nextIdx<ei?('Back to '+exs[nextIdx].name+' \u203a'):'Next Exercise \u203a';
     actionFn=nextExercise;
     actionStyle={background:'linear-gradient(135deg,#0C4A6E,'+A+')'};
   } else {
@@ -853,7 +868,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
           <div style={{flex:1,height:3,background:'#1E1E1E',borderRadius:2,marginRight:12}}>
             <div style={{height:'100%',width:pct+'%',background:A,borderRadius:2,transition:'width 0.4s'}}/>
           </div>
-          <div style={{fontSize:12,fontWeight:700,color:'#555',whiteSpace:'nowrap'}}>{ei+1} / {exs.length}</div>
+          <button onClick={()=>setShowList(true)} style={{fontSize:12,fontWeight:700,color:'#9CA3AF',whiteSpace:'nowrap',background:'#1A1A1A',border:'1px solid #2A2A2A',borderRadius:8,padding:'6px 10px',cursor:'pointer',fontFamily:'inherit'}}>{ei+1} / {exs.length} &#9776;</button>
         </div>
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
           <div style={{flex:1}}>
@@ -1000,12 +1015,49 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
         <button onClick={actionFn} style={{width:'100%',height:54,borderRadius:14,border:'none',cursor:'pointer',fontSize:16,fontWeight:800,color:'#fff',fontFamily:'inherit',...actionStyle}}>
           {actionLabel}
         </button>
+        {/* Skip for now - e.g. machine is busy */}
+        {!allSetsDone&&nextIdx!==-1&&<button onClick={skipExercise}
+          style={{width:'100%',height:44,borderRadius:12,border:'1px solid #2A2A2A',background:'#111',color:'#9CA3AF',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+          Skip for now &mdash; come back later &#8635;
+        </button>}
         {/* Cancel workout */}
         <button onClick={()=>setShowCancel(true)}
           style={{width:'100%',height:44,borderRadius:12,border:'1px solid #1E1E1E',background:'transparent',color:'#444',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
           Cancel Workout
         </button>
       </div>
+
+      {/* Exercise list - jump to any exercise */}
+      {showList&&<>
+        <div onClick={()=>setShowList(false)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.7)',zIndex:10}}/>
+        <div style={{position:'absolute',left:0,right:0,bottom:0,maxHeight:'75%',background:'#111',borderRadius:'20px 20px 0 0',zIndex:11,display:'flex',flexDirection:'column'}}>
+          <div onClick={()=>setShowList(false)} style={{display:'flex',justifyContent:'center',padding:'10px 0 6px',cursor:'pointer'}}>
+            <div style={{width:36,height:3,borderRadius:2,background:'#2A2A2A'}}/>
+          </div>
+          <div style={{padding:'4px 20px 12px',borderBottom:'1px solid #1E1E1E'}}>
+            <div style={{fontSize:15,fontWeight:800}}>Exercises</div>
+            <div style={{fontSize:12,color:'#666',marginTop:2}}>{doneCount} of {exs.length} done &bull; tap any exercise to jump to it</div>
+          </div>
+          <div style={{overflowY:'scroll',WebkitOverflowScrolling:'touch',padding:'8px 20px 28px',display:'flex',flexDirection:'column',gap:7}}>
+            {exs.map((x,j)=>{
+              const isCur=j===ei,done=x.logged.length>=x.sets,started=x.logged.length>0;
+              const status=done?'\u2713 Done':isCur?'Current':x.skipped?'Skipped \u2014 '+x.logged.length+'/'+x.sets+' sets':started?x.logged.length+'/'+x.sets+' sets':'Not started';
+              const col=done?'#10B981':isCur?A:x.skipped?'#F59E0B':'#6B7280';
+              return<button key={j} onClick={()=>isCur?setShowList(false):goTo(j)}
+                style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderRadius:10,cursor:'pointer',textAlign:'left',fontFamily:'inherit',
+                  background:isCur?'rgba(56,189,248,0.1)':'#1A1A1A',border:'1px solid '+(isCur?A:'#2A2A2A'),color:'#fff'}}>
+                <div style={{fontSize:12,fontWeight:800,color:'#555',width:18}}>{j+1}</div>
+                <div style={{flex:1,fontSize:14,fontWeight:600,opacity:done?0.6:1}}>{x.name}</div>
+                <div style={{fontSize:11,fontWeight:700,color:col,whiteSpace:'nowrap'}}>{status}</div>
+              </button>;
+            })}
+            {loggedSets>0&&!isLastEx&&<button onClick={finish}
+              style={{marginTop:8,padding:12,borderRadius:10,border:'1px dashed #2A2A2A',background:'transparent',color:'#9CA3AF',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
+              Finish workout now (unfinished exercises save what you logged)
+            </button>}
+          </div>
+        </div>
+      </>}
 
       {/* Cancel confirm dialog */}
       {showCancel&&<>
