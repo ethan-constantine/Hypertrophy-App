@@ -205,7 +205,7 @@ const PROGS={
   ]},
   hyrox:{id:'hyrox',name:'HYROX',short:'HYROX',freq:'4x / week + 2 optional runs',sessions:[
     {key:'hx_d1',label:'Day 1 • Threshold Run',exercises:[
-      interval('Threshold Run',3,600,120,'Warm up 10 min easy first, cool down 5-10 min after. Run each 10 min block at threshold: comfortably hard, roughly 10k race effort (RPE 7-8) - you can say a few words but not hold a conversation. 2 min easy jog between blocks. Log distance covered each block to track progress.')
+      interval('Threshold Run',3,600,120,'Warm up 10 min easy first, cool down 5-10 min after. Run each 10 min block at threshold: comfortably hard, roughly 10k race effort - you can say a few words but not hold a conversation. 2 min easy jog between blocks. Log distance covered each block to track progress.')
     ]},
     {key:'hx_d2',label:'Day 2 • Strength',exercises:[
       {...dist('Sled Push',2,50,180,'50 m at 150 kg (including the sled). Low drive position, short powerful steps. No sled? Use the swap button for Leg Press: 2 sets of 8-10 heavy reps.'),alts:{'Leg Press':{type:'Compound',rLo:8,rHi:10,rpe:9,rest:180,cue:'Heavy. 2 sets of 8-10 reps, controlled with full range of motion. Take the last set close to failure.'}}},
@@ -228,10 +228,10 @@ const PROGS={
       ex('Wall Balls',1,100,100,'Compound',9,'100 reps with a 6 kg ball. Break it up early (sets of 20-25) rather than fail late. Log the weight and reps you completed.',120)
     ]},
     {key:'hx_opt_vo2',label:'Optional • VO2 Max 4x4',optional:true,exercises:[
-      interval('VO2 Max Intervals — Run',4,240,180,'Norwegian 4x4 - 90-95% max HR, hard but controlled (RPE 9). 3 min easy jog recovery between rounds. Warm up 10 min first. Log distance covered each round to track progression.')
+      interval('VO2 Max Intervals — Run',4,240,180,'Norwegian 4x4 - 90-95% max HR, hard but controlled. 3 min easy jog recovery between rounds. Warm up 10 min first. Log distance covered each round to track progression.')
     ]},
     {key:'hx_opt_long',label:'Optional • Long Run',optional:true,exercises:[
-      {...interval('Long Run — Easy Pace',1,3600,0,'60 min at a genuinely easy, conversational pace (RPE 3-4). Slower is fine - this builds your aerobic base. Log total distance covered.'),easy:true}
+      {...interval('Long Run — Easy Pace',1,3600,0,'60 min at a genuinely easy, conversational pace. Slower is fine - this builds your aerobic base. Log total distance covered.'),easy:true}
     ]}
   ]},
   pl:{id:'pl',name:'Powerlifting Peaking Block',short:'Power',freq:'4x / week',sessions:buildPLSessions()}
@@ -642,7 +642,6 @@ function SessionOverview({planId,sess,hist,unit,swaps,onSaveSwap,onBegin,onBack,
               {e.pctOf&&e.pct!=null&&(oneRM&&oneRM[e.pctOf]?
                 <div style={{fontSize:11,color:A,fontWeight:600,marginBottom:2}}>{e.pct}% of {e.pctOf} 1RM &bull; target &asymp;{toDisp(roundPlate(oneRM[e.pctOf]*e.pct/100),unit)}{unit}</div>
                 :<div style={{fontSize:11,color:'#6B7280',marginBottom:2}}>{e.pct}% of {e.pctOf} 1RM &mdash; test your max in Week 1 first</div>)}
-              <div style={{fontSize:11,color:e.rpe>=9?A:'#6B7280'}}>RPE {e.rpe} &mdash; {10-e.rpe} reps left</div>
               {e.cue&&<div style={{fontSize:11,color:'#6B7280',marginTop:2}}>{e.cue}</div>}
             </>}
             {swapped&&<Btn onClick={()=>onSaveSwap(sk(i),null)} ch={'Reset to '+e.name}
@@ -838,7 +837,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     if(cur.type==='Max'&&cur.pctOf&&kg>0&&onSetPR)onSetPR(cur.pctOf,kg);
     const isPR=kg>0&&(cur.atb===null||kg>cur.atb);
     const hitTop=reps>=cur.rHi;
-    const newLogged=[...cur.logged,{kg,reps,rpe:cur.curRpe,w:cur.curW,r:cur.curR}];
+    const newLogged=[...cur.logged,{kg,reps,rpe:null,w:cur.curW,r:cur.curR}];
     setExs(p=>p.map((e,i)=>i!==ei?e:{...e,
       atb:isPR?kg:e.atb,
       hitTop:e.hitTop||hitTop,
@@ -857,6 +856,11 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
     setEi(j);setPr(null);stopRest();setShowList(false);setShowSwap(false);setEditIdx(null);
   }
   const isRepType=x=>x.type!=='Plyo'&&x.type!=='Distance'&&x.type!=='Interval';
+  const W_STEP=unit==='kg'?2.5:5;
+  function stepW(d){
+    setExs(p=>p.map((ex,i)=>{if(i!==ei)return ex;const v=parseFloat(ex.curW)||0;const nv=Math.max(0,Math.round((v+d*W_STEP)*100)/100);return{...ex,curW:String(nv)};}));
+  }
+  const stepBtn={width:44,height:56,flexShrink:0,borderRadius:10,background:'#1A1A1A',border:'1px solid #2A2A2A',color:'#fff',fontSize:24,fontWeight:700,cursor:'pointer',fontFamily:'inherit',padding:0};
   function openEdit(i){
     const st=cur.logged[i];if(!st)return;
     setEd({w:st.w!=null?String(st.w):'',r:st.r!=null&&st.r!==''?String(st.r):String(st.reps||''),t:st.t!=null?fmtTime(st.t):''});
@@ -980,7 +984,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
               {cur.cue&&<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.cue}</div>}
               {cur.pb!=null&&<div style={{fontSize:12,color:'#444',marginTop:3}}>Previous best: <span style={{color:'#888',fontWeight:600}}>{cur.pb}m</span></div>}
             </>:<>
-              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps &bull; RPE {cur.rpe}</div>
+              <div style={{fontSize:13,color:'#555'}}>{cur.sets} sets &bull; {cur.rLo}&ndash;{cur.rHi} reps</div>
               {cur.pctOf&&cur.pct!=null&&(oneRM&&oneRM[cur.pctOf]?
                 <div style={{fontSize:12,color:A,fontWeight:600,marginTop:3}}>{cur.pct}% of {cur.pctOf} 1RM &bull; target &asymp;{toDisp(roundPlate(oneRM[cur.pctOf]*cur.pct/100),unit)}{unit}</div>
                 :<div style={{fontSize:12,color:'#444',marginTop:3}}>{cur.pct}% of {cur.pctOf} 1RM &mdash; test your max in Week 1 first</div>)}
@@ -1016,8 +1020,7 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
               {lEx&&lEx.sets&&lEx.sets[i]&&lEx.sets[i].t!=null&&s.t<lEx.sets[i].t&&<span style={{fontSize:11,color:G,fontWeight:700}}>-{lEx.sets[i].t-s.t}s</span>}
               {lEx&&lEx.sets&&lEx.sets[i]&&lEx.sets[i].t!=null&&s.t>lEx.sets[i].t&&<span style={{fontSize:11,color:'#6B7280'}}>+{s.t-lEx.sets[i].t}s</span>}
             </div>}
-            {s.rpe&&<div style={{fontSize:12,color:'#555'}}>RPE {s.rpe}</div>}
-                <span style={{fontSize:13,color:'#555'}}>&#9998;</span>
+                            <span style={{fontSize:13,color:'#555'}}>&#9998;</span>
           </div>)}
         </div>}
 
@@ -1058,26 +1061,23 @@ function ActiveWorkout({planId,sess,hist,unit,swaps,onSaveSwap,onDone,onExit,one
             </div>
           </>
           :
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
-            {/* Weight */}
+          <div style={{display:'grid',gridTemplateColumns:'1.7fr 1fr',gap:10,marginBottom:16}}>
+            {/* Weight - type it, or use -/+ (2.5kg / 5lb steps) */}
             <div>
               <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>{unit==='kg'?'Kg':'Lbs'}</div>
-              <input value={cur.curW} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curW:e.target.value}))}
-                type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="0"
-                style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
+              <div style={{display:'flex',gap:6}}>
+                <button onClick={()=>stepW(-1)} aria-label="Decrease weight" style={stepBtn}>&minus;</button>
+                <input value={cur.curW} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curW:e.target.value}))}
+                  type="text" inputMode="decimal" pattern="[0-9.]*" autoComplete="off" placeholder="0"
+                  style={{flex:1,minWidth:0,width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
+                <button onClick={()=>stepW(1)} aria-label="Increase weight" style={stepBtn}>+</button>
+              </div>
             </div>
             {/* Reps */}
             <div>
               <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>Reps</div>
               <input value={cur.curR} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curR:e.target.value}))}
                 type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="0"
-                style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
-            </div>
-            {/* RPE */}
-            <div>
-              <div style={{fontSize:11,color:'#555',fontWeight:600,marginBottom:6,textAlign:'center'}}>RPE</div>
-              <input value={cur.curRpe} onChange={e=>setExs(p=>p.map((ex,i)=>i!==ei?ex:{...ex,curRpe:e.target.value}))}
-                type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="–"
                 style={{width:'100%',height:56,background:'#111',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:22,fontWeight:700,textAlign:'center',outline:'none'}}/>
             </div>
           </div>}
@@ -1260,8 +1260,11 @@ function Progress({hist,unit,onUpdate}){
   const [editing,setEditing]=useState(false);
   const [ed,setEd]=useState(null); // {hi,ej,sk,w,r,t}
   const [delConfirm,setDelConfirm]=useState(false);
+  const [view,setView]=useState('charts');
+  const [sel,setSel]=useState(null);
+  const [range,setRange]=useState('all');
   const isRep=e=>e.type!=='Plyo'&&e.type!=='Distance'&&e.type!=='Interval';
-  const fmtSet=(e,st)=>e.type==='Distance'?((st.reps||0)+'m'+(st.t!=null?' in '+fmtTime(st.t):'')):e.type==='Interval'?((st.reps||0)+'m'):e.type==='Plyo'?((st.reps||0)+' reps'):((st.kg?toDisp(st.kg,unit)+unit+' × '+st.reps:st.reps+' reps')+(st.rpe?' @'+st.rpe:''));
+  const fmtSet=(e,st)=>e.type==='Distance'?((st.reps||0)+'m'+(st.t!=null?' in '+fmtTime(st.t):'')):e.type==='Interval'?((st.reps||0)+'m'):e.type==='Plyo'?((st.reps||0)+' reps'):((st.kg?toDisp(st.kg,unit)+unit+' × '+st.reps:st.reps+' reps'));
   function toggle(i){setOpen(open===i?null:i);setEditing(false);setEd(null);setDelConfirm(false);}
   function openSet(hi,ej,sk){const st=hist[hi].exercises[ej].sets[sk];setEd({hi,ej,sk,w:st.kg?String(toDisp(st.kg,unit)):'',r:String(st.reps||''),t:st.t!=null?fmtTime(st.t):''});}
   function commit(hi,exercises){
@@ -1289,14 +1292,105 @@ function Progress({hist,unit,onUpdate}){
       <input value={ed[key]} onChange={e=>setEd({...ed,[key]:e.target.value})} type="text" inputMode={mode} autoComplete="off"
         style={{width:'100%',height:52,background:'#0A0A0A',border:'1px solid #2A2A2A',borderRadius:10,color:'#fff',fontSize:20,fontWeight:700,textAlign:'center',outline:'none'}}/>
     </div>);
+  // ---- charts: one series per exercise (best set per session) ----
+  const DAY=86400000;
+  const series=(()=>{
+    const raw={};
+    hist.forEach(h=>{const d=new Date(h.date).getTime();(h.exercises||[]).forEach(e=>{
+      if(!e.sets||!e.sets.length)return;const t=e.type||'Compound';
+      const key=t==='Distance'?e.name+' — '+(e.sets[0].reps||0)+'m':e.name;
+      (raw[key]=raw[key]||{type:t,rows:[]}).rows.push({d,sets:e.sets});
+    });});
+    const out={};
+    Object.keys(raw).forEach(k=>{const {type,rows}=raw[k];let metric,pts;
+      if(type==='Distance'){metric='time';pts=rows.map(r=>{const ts=r.sets.map(x=>x.t).filter(x=>x>0);return ts.length?{d:r.d,v:Math.min(...ts)}:null;});}
+      else if(type==='Interval'){metric='metres';pts=rows.map(r=>{const m=r.sets.map(x=>x.reps||0).filter(x=>x>0);return m.length?{d:r.d,v:Math.max(...m)}:null;});}
+      else{const hasKg=rows.some(r=>r.sets.some(x=>(x.kg||0)>0));metric=hasKg?'kg':'reps';
+        pts=rows.map(r=>{const vals=r.sets.map(x=>hasKg?(x.kg||0):(x.reps||0)).filter(x=>x>0);return vals.length?{d:r.d,v:Math.max(...vals)}:null;});}
+      pts=pts.filter(Boolean).sort((a,b)=>a.d-b.d);
+      if(pts.length)out[k]={metric,pts};
+    });
+    return out;
+  })();
+  const names=Object.keys(series).sort((a,b)=>a.localeCompare(b));
+  const curName=sel&&series[sel]?sel:(names.length?names.reduce((a,b)=>series[b].pts.length>series[a].pts.length?b:a):null);
+  const cs=curName?series[curName]:null;
+  const RANGES=[['all','All time'],['1y','Last year'],['3m','3 months'],['1m','Last month']];
+  const span={all:Infinity,'1y':365*DAY,'3m':91*DAY,'1m':30*DAY}[range];
+  const nowT=Date.now();
+  const pts=cs?cs.pts.filter(p=>nowT-p.d<=span):[];
+  const lowerBetter=!!cs&&cs.metric==='time';
+  const fmtV=v=>!cs?'':cs.metric==='kg'?toDisp(v,unit)+unit:cs.metric==='time'?fmtTime(Math.round(v)):cs.metric==='metres'?Math.round(v)+'m':Math.round(v)+' reps';
+  const metricLabel=!cs?'':cs.metric==='kg'?'Heaviest set each session':cs.metric==='time'?'Fastest time each session':cs.metric==='metres'?'Best round each session':'Most reps each session';
+  function stepEx(d){if(!names.length)return;const i=names.indexOf(curName);setSel(names[(i+d+names.length)%names.length]);}
+  const bestV=pts.length?(lowerBetter?Math.min(...pts.map(p=>p.v)):Math.max(...pts.map(p=>p.v))):null;
+  const diff=pts.length>1?pts[pts.length-1].v-pts[0].v:0;
+  const improved=lowerBetter?diff<0:diff>0;
+  const diffTxt=pts.length<2?'—':cs.metric==='time'?((diff>0?'+':diff<0?'−':'')+fmtTime(Math.abs(Math.round(diff)))):((diff>0?'+':diff<0?'−':'')+(cs.metric==='kg'?toDisp(Math.abs(diff),unit)+unit:Math.round(Math.abs(diff))+(cs.metric==='metres'?'m':'')));
+  const chart=(()=>{
+    if(!pts.length)return null;
+    const W=340,H=190,l=50,r=12,t=14,b=26;
+    const xs=pts.map(p=>p.d),ys=pts.map(p=>p.v);
+    let x0=Math.min(...xs),x1=Math.max(...xs);if(x1===x0){x0-=DAY;x1+=DAY;}
+    let y0=Math.min(...ys),y1=Math.max(...ys);if(y1===y0){y0=y0*0.9;y1=y1*1.1||1;}
+    const pad=(y1-y0)*0.12;y0=Math.max(0,y0-pad);y1=y1+pad;
+    const minSpan={kg:5,reps:4,time:10,metres:50}[cs.metric]||1;
+    if(y1-y0<minSpan){const c=(y0+y1)/2;y0=Math.max(0,c-minSpan/2);y1=y0+minSpan;}
+    const fmtTick=v=>cs.metric==='kg'?Math.round(toDisp(v,unit))+unit:fmtV(v);
+    const X=d=>l+(d-x0)/(x1-x0)*(W-l-r),Y=v=>t+(1-(v-y0)/(y1-y0))*(H-t-b);
+    const path=pts.map((p,i)=>(i?'L':'M')+X(p.d).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
+    const area=path+' L'+X(pts[pts.length-1].d).toFixed(1)+' '+(H-b)+' L'+X(pts[0].d).toFixed(1)+' '+(H-b)+' Z';
+    const dl=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    return(<svg viewBox={'0 0 '+W+' '+H} style={{width:'100%',height:'auto',display:'block'}}>
+      <defs><linearGradient id="cfArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={A} stopOpacity="0.35"/><stop offset="100%" stopColor={A} stopOpacity="0"/></linearGradient></defs>
+      {[y0,(y0+y1)/2,y1].map((v,i)=><g key={i}><line x1={l} x2={W-r} y1={Y(v)} y2={Y(v)} stroke="#293241" strokeDasharray="3 4"/><text x={l-6} y={Y(v)+4} fill="#6B7280" fontSize="10" textAnchor="end">{fmtTick(v)}</text></g>)}
+      {pts.length>1&&<path d={area} fill="url(#cfArea)"/>}
+      {pts.length>1&&<path d={path} fill="none" stroke={A} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>}
+      {pts.map((p,i)=><circle key={i} cx={X(p.d)} cy={Y(p.v)} r={p.v===bestV?5:3.5} fill={p.v===bestV?'#FBBF24':A} stroke="#0A0A0A" strokeWidth="1.5"/>)}
+      <text x={l} y={H-6} fill="#6B7280" fontSize="10">{dl(pts[0].d)}</text>
+      {pts.length>1&&<text x={W-r} y={H-6} fill="#6B7280" fontSize="10" textAnchor="end">{dl(pts[pts.length-1].d)}</text>}
+    </svg>);
+  })();
+  const navBtn={width:44,height:44,flexShrink:0,borderRadius:10,background:S,border:'1px solid '+B,color:'#fff',fontSize:22,fontWeight:700,cursor:'pointer',fontFamily:'inherit',padding:0};
   const smallBtn={flex:1,height:40,borderRadius:10,border:'1px solid '+B,background:'#1E1E1E',color:'#E5E7EB',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'};
   return(
     <FS scroll>
       <div style={{padding:'60px 20px 20px'}}>
-        <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Progress</div>
-        {hist.length>0&&<div style={{fontSize:12,color:'#6B7280',marginBottom:12}}>Tap a session to see it, then Edit sets to fix anything logged wrong.</div>}
-        {!hist.length&&<div style={{textAlign:'center',padding:'60px 0',color:'#6B7280',fontSize:14}}>No sessions yet.</div>}
-        {hist.map((h,i)=><Card key={i} style={{marginBottom:10,cursor:'pointer'}} onClick={()=>toggle(i)} ch={<>
+        <div style={{fontSize:22,fontWeight:800,marginBottom:12}}>Progress</div>
+        <div style={{display:'flex',background:S,border:'1px solid '+B,borderRadius:12,padding:4,marginBottom:14}}>
+          {[['charts','Charts'],['history','History']].map(([k,l])=><div key={k} onClick={()=>setView(k)}
+            style={{flex:1,textAlign:'center',padding:10,borderRadius:9,fontSize:13,fontWeight:700,cursor:'pointer',background:view===k?A:'transparent',color:view===k?'#000':'#9CA3AF'}}>{l}</div>)}
+        </div>
+        {!hist.length&&<div style={{textAlign:'center',padding:'60px 0',color:'#6B7280',fontSize:14}}>No sessions yet. Finish a workout to start tracking.</div>}
+        {view==='charts'&&hist.length>0&&(!names.length?<div style={{textAlign:'center',padding:'40px 0',color:'#6B7280',fontSize:14}}>No logged sets to chart yet.</div>:<>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:10}}>
+            <button onClick={()=>stepEx(-1)} aria-label="Previous exercise" style={navBtn}>&#8249;</button>
+            <select value={curName} onChange={e=>setSel(e.target.value)}
+              style={{flex:1,minWidth:0,height:44,borderRadius:10,background:S,border:'1px solid '+B,color:'#fff',fontSize:14,fontWeight:700,padding:'0 10px',fontFamily:'inherit'}}>
+              {names.map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+            <button onClick={()=>stepEx(1)} aria-label="Next exercise" style={navBtn}>&#8250;</button>
+          </div>
+          <div style={{display:'flex',gap:6,marginBottom:12}}>
+            {RANGES.map(([k,l])=><button key={k} onClick={()=>setRange(k)}
+              style={{flex:1,height:34,borderRadius:9,border:'1px solid '+(range===k?A:B),background:range===k?'rgba(56,189,248,0.15)':'transparent',color:range===k?'#fff':'#9CA3AF',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',padding:0}}>{l}</button>)}
+          </div>
+          <Card style={{marginBottom:10}} ch={<>
+            <div style={{fontSize:11,color:'#6B7280',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:8}}>{metricLabel}</div>
+            {pts.length?chart:<div style={{textAlign:'center',padding:'40px 0',color:'#6B7280',fontSize:13}}>No sessions in this period.</div>}
+            {pts.length===1&&<div style={{fontSize:12,color:'#6B7280',textAlign:'center',marginTop:6}}>Log this exercise again to see a trend.</div>}
+          </>}/>
+          {pts.length>0&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}}>
+            {[['Latest',fmtV(pts[pts.length-1].v),'#fff'],['Best',fmtV(bestV),'#FBBF24'],['Change',diffTxt,pts.length<2||diff===0?'#9CA3AF':improved?'#10B981':R]].map(([l,v,c])=>
+              <div key={l} style={{background:S,border:'1px solid '+B,borderRadius:12,padding:'10px 6px',textAlign:'center'}}>
+                <div style={{fontSize:15,fontWeight:800,color:c}}>{v}</div>
+                <div style={{fontSize:10,color:'#6B7280',fontWeight:600,marginTop:2}}>{l}</div>
+              </div>)}
+          </div>}
+          {pts.length>0&&<div style={{fontSize:11,color:'#6B7280',textAlign:'center'}}>{pts.length} session{pts.length===1?'':'s'} in this period &bull; {names.length} exercises tracked</div>}
+        </>)}
+        {view==='history'&&hist.length>0&&<div style={{fontSize:12,color:'#6B7280',marginBottom:12}}>Tap a session to see it, then Edit sets to fix anything logged wrong.</div>}
+        {view==='history'&&hist.map((h,i)=><Card key={i} style={{marginBottom:10,cursor:'pointer'}} onClick={()=>toggle(i)} ch={<>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
             <div><div style={{fontSize:14,fontWeight:700,marginBottom:2}}>{h.label}</div><div style={{fontSize:12,color:'#9CA3AF'}}>{fmtDate(h.date)}</div></div>
             <div style={{textAlign:'right'}}>{h.vol?<><div style={{fontSize:13,fontWeight:800,color:A}}>{toDisp(h.vol,unit)} {unit}</div><div style={{fontSize:10,color:'#6B7280'}}>volume</div></>:<><div style={{fontSize:13,fontWeight:800,color:A}}>{(h.exercises||[]).reduce((a,e)=>a+e.sets.length,0)}</div><div style={{fontSize:10,color:'#6B7280'}}>sets</div></>}</div>
